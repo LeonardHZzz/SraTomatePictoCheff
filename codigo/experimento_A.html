@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Experimento A · Motor de decisión PictoChef</title>
+  <style>
+    body { font-family: Consolas, "Courier New", monospace; background: #111; color: #e8f5e9; margin: 0; padding: 24px; }
+    h1, h2 { font-family: "Segoe UI", sans-serif; color: #fff; }
+    p, li { font-family: "Segoe UI", sans-serif; line-height: 1.5; max-width: 900px; }
+    a { color: #ffcc80; }
+    select, button, input { font-size: 16px; padding: 8px 12px; margin: 4px; }
+    pre { background: #1e1e1e; border: 1px solid #444; padding: 16px; overflow: auto; white-space: pre-wrap; }
+    table { border-collapse: collapse; background: #1e1e1e; margin: 8px 0; }
+    td, th { border: 1px solid #555; padding: 8px 12px; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>Experimento A — Lógica de la Sra. Tomate</h1>
+  <p>Simulación de una partida (Modalidad 1): la Sra. Tomate pregunta el tipo de platillo, presenta una receta, pide sus
+    ingredientes y luego los <b>pasos de preparación</b> (orden parcial: cada paso tiene requisitos). Ante cada error elige la pista
+    que maximiza la <b>ganancia de información</b> sobre las tarjetas visibles (ingredientes: color, grupo, origen, sabor;
+    pasos: herramienta y objeto), escalando de 1 atributo → 2 atributos → respuesta directa. La habilidad θ ajusta la receta,
+    los distractores de la despensa y los pasos distractores. Los minijuegos de motricidad se dan por realizados.</p>
+  <p><a href="juego/index.html">Abrir el juego (Experimento B)</a></p>
+  <label>Receta
+    <select id="receta"></select>
+  </label>
+  <label>θ inicial <input id="theta" type="number" value="0.8" min="0" max="1" step="0.05" style="width:80px" /></label>
+  <label>Semilla <input id="seed" type="number" value="3" style="width:70px" /></label>
+  <button type="button" onclick="correr()">Correr partida</button>
+  <button type="button" onclick="evaluar()">Evaluar políticas (800 partidas)</button>
+  <pre id="out"></pre>
+
+  <h2>Espacio de estados (resumen)</h2>
+  <table>
+    <tr><th>Símbolo</th><th>Significado</th></tr>
+    <tr><td>fase</td><td>TIPO → INGREDIENTES → PASOS ⇄ ACCION (minijuego) → VICTORIA</td></tr>
+    <tr><td>c, r</td><td>Tipo de platillo elegido y receta objetivo</td></tr>
+    <tr><td>D</td><td>Despensa mostrada = ing(r) ∪ distractores (|distractores| = round(2 + 4θ))</td></tr>
+    <tr><td>X, W</td><td>Ingredientes correctos colocados / elecciones incorrectas</td></tr>
+    <tr><td>Y, req(p)</td><td>Pasos hechos (en orden) / requisitos del paso p; válidos V = {p ∉ Y : req(p) ⊆ Y}</td></tr>
+    <tr><td>C, M</td><td>Tarjetas disponibles D \ (X ∪ W) / ingredientes que faltan ing(r) \ X</td></tr>
+    <tr><td>h</td><td>Nivel de pista 0..3 (sube con cada error o AYUDA, vuelve a 0 con un acierto)</td></tr>
+    <tr><td>IG(g, A)</td><td>log₂|C| − log₂|S|, S = tarjetas de C que comparten con g los atributos A</td></tr>
+    <tr><td>θ</td><td>Habilidad estimada; θ ← θ + 0.3·(desempeño − 0.7) al terminar cada receta</td></tr>
+  </table>
+
+  <script src="juego/js/catalogo.js"></script>
+  <script src="juego/js/agente.js"></script>
+  <script>
+    const sel = document.getElementById("receta");
+    CATALOGO.recetas.forEach((r) => {
+      const o = document.createElement("option");
+      o.value = r.id;
+      o.textContent = `${r.nombre} (${r.tipo})`;
+      if (r.id === "pizza") o.selected = true;
+      sel.appendChild(o);
+    });
+
+    function correr() {
+      const receta = recetaPorId(sel.value);
+      const seed = Number(document.getElementById("seed").value) || 3;
+      const perfil = new Perfil();
+      perfil.theta = Number(document.getElementById("theta").value);
+      const th0 = perfil.theta;
+      const p = jugarSimulado(receta, "ig", seed, perfil, { pConoce: 0.3, pOrden: 0.3 });
+      const log = [`=== PARTIDA GUIADA | receta: ${receta.nombre} [${receta.ingredientes.join(", ")}] | θ = ${th0} ===`];
+      log.push(`Pasos (requisitos): ${receta.pasos.map((q) => q.paso + (q.requiere.length ? "(" + q.requiere.join(",") + ")" : "")).join(" → ")}`);
+      log.push(`Tarjetas de pasos: [${p.tarjetasPaso.join(", ")}]`);
+      log.push(`Despensa: [${p.despensa.join(", ")}]`);
+      p.historial.forEach((h) => {
+        if (h.jugador) log.push(`  jugador toca [${h.jugador}]`);
+        log.push(`  [t=${String(h.t).padStart(2)}] ${h.fase.padEnd(8)} SRA. TOMATE -> ${h.accion.tipo.padEnd(15)} nivel ${h.accion.nivel ?? 0}  pictos=${JSON.stringify(h.accion.filas)}`);
+        log.push(`        voz: "${h.accion.texto}"`);
+      });
+      log.push(`\nResultado: errores ingredientes = ${p.errores} | errores pasos = ${p.erroresPasos} | turnos = ${p.t} | estrellas = ${p.estrellas} | θ: ${th0.toFixed(2)} -> ${p.perfil.theta.toFixed(2)}`);
+      document.getElementById("out").textContent = log.join("\n");
+    }
+
+    function evaluar() {
+      const n = 800;
+      const out = ["=== EVALUACIÓN (jugador conoce 40% de los ingredientes y del orden, sigue la pista 85%) ===",
+        "θ     política    err.ingr err.pasos  turnos  pista directa"];
+      for (const th of [0.35, 0.8]) {
+        for (const pol of ["ig", "aleatoria", "sin_pista"]) {
+          let e = 0, ep = 0, t = 0, d = 0;
+          for (let k = 0; k < n; k++) {
+            const r = CATALOGO.recetas[k % CATALOGO.recetas.length];
+            const pf = new Perfil();
+            pf.theta = th;
+            const p = jugarSimulado(r, pol, 42 + k, pf, { pConoce: 0.4, pOrden: 0.4, pSigue: 0.85 });
+            e += p.errores;
+            ep += p.erroresPasos;
+            t += p.t;
+            if (p.historial.some((h) => h.accion.tipo === "PISTA" && h.accion.nivel === 3)) d++;
+          }
+          out.push(`${String(th).padEnd(6)}${pol.padEnd(11)}${(e / n).toFixed(2).padStart(9)}${(ep / n).toFixed(2).padStart(10)}${(t / n).toFixed(2).padStart(9)}${((d / n) * 100).toFixed(1).padStart(14)}%`);
+        }
+      }
+      document.getElementById("out").textContent = out.join("\n");
+    }
+    correr();
+  </script>
+</body>
+</html>

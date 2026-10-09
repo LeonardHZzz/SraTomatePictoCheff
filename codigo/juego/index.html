@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PictoChef · Cocina de la Sra. Tomate</title>
+  <link rel="stylesheet" href="css/estilo.css" />
+  <script src="js/catalogo.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="../../datos/sprites/SraTomateIddle.png" alt="" />
+      <span>PictoChef</span>
+    </div>
+    <button type="button" class="jugador-chip oculto" id="chip-jugador" data-narrar="Cambiar de jugador">
+      <img id="chip-avatar" alt="" /><span id="chip-nombre"></span>
+    </button>
+    <div class="tools">
+      <button type="button" id="btn-logros" class="chip" data-narrar="Mis logros">
+        <img src="../../datos/pictogramas/trofeo.png" data-picto="trofeo" alt="" onerror="pictoFallback(this)" /> Mis logros
+      </button>
+      <label class="chip"><input id="voz" type="checkbox" checked /> Voz</label>
+      <label class="chip"><input id="sonidos" type="checkbox" checked /> Sonidos</label>
+      <label class="chip"><input id="pasar" type="checkbox" checked /> Leer al tocar</label>
+      <details class="ajustes">
+        <summary class="chip">Ajustes de voz</summary>
+        <div class="ajustes-panel">
+          <label>Voz en español
+            <select id="sel-voz"></select>
+          </label>
+          <label>Velocidad <span id="vel-txt">0.9</span>
+            <input id="vel" type="range" min="0.6" max="1.2" step="0.05" value="0.9" />
+          </label>
+          <button type="button" id="probar">Probar voz</button>
+          <p class="nota" id="nota-voz">Consejo: en Microsoft Edge las voces «Natural» (p. ej. Camila, Perú) son las más claras.</p>
+        </div>
+      </details>
+      <label class="chip"><input id="terapeuta" type="checkbox" /> Terapeuta</label>
+      <button type="button" id="btn-registro" class="chip">Registro</button>
+      <a class="chip" href="../experimento_A.html">Experimento A</a>
+      <button type="button" id="btn-nueva">Otra receta</button>
+    </div>
+  </header>
+
+  <main class="kitchen">
+    <!-- Sra. Tomate -->
+    <section class="chef-col">
+      <div class="mascot" id="mascot">
+        <img id="sprite" class="sprite" src="../../datos/sprites/SraTomateIddle.png" alt="Sra. Tomate" />
+        <div class="sombra" aria-hidden="true"></div>
+      </div>
+      <p class="chef-name">Sra. Tomate</p>
+      <div class="bubble" id="bubble" aria-live="polite">
+        <div id="pictos" class="pictos"></div>
+        <p id="msg">¡Hola!</p>
+        <button type="button" class="btn-oir" id="btn-oir" data-narrar="Escuchar otra vez">
+          <img src="../../datos/pictogramas/oir.png" data-picto="oir" alt="" onerror="pictoFallback(this)" />
+          <span>ESCUCHAR</span>
+        </button>
+      </div>
+      <div class="answers">
+        <button type="button" class="btn-help" id="btn-ayuda" data-narrar="Ayuda">
+          <img src="../../datos/pictogramas/ayuda.png" data-picto="ayuda" alt="" onerror="pictoFallback(this)" />
+          <span>AYUDA</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Centro: tipos de platillo, receta, pasos y minijuego -->
+    <section class="plate-col">
+      <h2 id="centro-titulo">¿Qué quieres preparar?</h2>
+      <div id="tipos" class="tipos"></div>
+
+      <div id="receta" class="receta oculto">
+        <div class="receta-head">
+          <img id="receta-img" alt="" />
+          <div>
+            <span class="etiqueta">Vamos a preparar</span>
+            <strong id="receta-nombre"></strong>
+          </div>
+        </div>
+        <div class="plate-wrap" id="zona-plato">
+          <div id="slots" class="slots"></div>
+          <p class="soltar-aqui">Suelta aquí</p>
+        </div>
+        <p id="progreso" class="progreso"></p>
+
+        <div id="linea-pasos" class="linea-pasos oculto"></div>
+        <div id="zona-cocina" class="zona-cocina oculto">
+          <div id="cocina-espera" class="cocina-espera">
+            <img src="../../datos/pictogramas/pregunta.png" data-picto="pregunta" alt="" onerror="pictoFallback(this)" />
+            <span>Toca o arrastra aquí el paso que sigue</span>
+          </div>
+          <canvas id="lienzo" class="lienzo oculto" aria-label="Cocina: haz el gesto con el dedo o el ratón"></canvas>
+          <button type="button" id="btn-ayuda-motora" class="btn-ayuda-motora oculto" data-narrar="Te ayudo con el gesto">
+            <img src="../../datos/pictogramas/ayuda.png" data-picto="ayuda" alt="" onerror="pictoFallback(this)" /> TE AYUDO
+          </button>
+        </div>
+      </div>
+
+      <div id="belief" class="belief"></div>
+    </section>
+
+    <!-- Despensa / Pasos -->
+    <section class="shelf-col">
+      <h2 id="der-titulo">Despensa</h2>
+      <p id="despensa-nota" class="despensa-nota"></p>
+      <div id="grid" class="grid"></div>
+    </section>
+  </main>
+
+  <!-- Inicio de sesión: ¿quién juega? -->
+  <div id="login" class="overlay show" role="dialog" aria-modal="true" aria-labelledby="login-tit">
+    <div class="card-win card-ancha">
+      <img class="sprite-grande" src="../../datos/sprites/SraTomateQuestion.png" alt="Sra. Tomate" />
+      <h2 id="login-tit">¿Quién va a cocinar hoy?</h2>
+      <div id="login-lista" class="login-lista"></div>
+      <p class="nota" id="aviso-memoria"></p>
+    </div>
+  </div>
+
+  <!-- Nuevo jugador -->
+  <div id="nuevo" class="overlay" role="dialog" aria-modal="true" aria-labelledby="nuevo-tit">
+    <div class="card-win card-ancha">
+      <h2 id="nuevo-tit">Nuevo jugador</h2>
+      <label class="campo">Nombre
+        <input id="nuevo-nombre" type="text" maxlength="24" autocomplete="off" placeholder="Escribe el nombre" />
+      </label>
+      <p class="sub-tit">Elige tu dibujo</p>
+      <div id="nuevo-avatares" class="avatares"></div>
+      <p class="sub-tit">¿Cómo quieres hacer los gestos?</p>
+      <div id="nuevo-motor" class="motores"></div>
+      <label class="chip chip-claro"><input id="nuevo-sincolor" type="checkbox" /> Sin pistas de color (daltonismo)</label>
+      <div class="win-botones">
+        <button type="button" id="nuevo-cancelar">Volver</button>
+        <button type="button" id="nuevo-crear" class="btn-grande">
+          <img src="../../datos/pictogramas/si.png" data-picto="si" alt="" onerror="pictoFallback(this)" /> ¡LISTO!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mis logros -->
+  <div id="logros" class="overlay" role="dialog" aria-modal="true" aria-labelledby="logros-tit">
+    <div class="card-win card-ancha">
+      <h2 id="logros-tit">Mis logros</h2>
+      <div id="logros-stats" class="stats"></div>
+      <div id="logros-recetas" class="recetario"></div>
+      <button type="button" class="btn-grande" data-cerrar="logros">
+        <img src="../../datos/pictogramas/cocinar.png" data-picto="cocinar" alt="" onerror="pictoFallback(this)" /> A COCINAR
+      </button>
+    </div>
+  </div>
+
+  <!-- Registro del terapeuta -->
+  <div id="registro" class="overlay" role="dialog" aria-modal="true" aria-labelledby="registro-tit">
+    <div class="card-win card-registro">
+      <h2 id="registro-tit">Registro del terapeuta</h2>
+      <div class="reg-barra">
+        <label>Jugador <select id="reg-jugador"></select></label>
+        <button type="button" id="reg-csv">Exportar CSV</button>
+        <button type="button" id="reg-json">Respaldo JSON</button>
+        <label class="chip chip-claro">Importar respaldo <input id="reg-importar" type="file" accept=".json,application/json" hidden /></label>
+      </div>
+      <div id="reg-detalle"></div>
+      <div class="win-botones"><button type="button" data-cerrar="registro">Cerrar</button></div>
+    </div>
+  </div>
+
+  <!-- Victoria -->
+  <div id="win" class="overlay" role="dialog" aria-modal="true">
+    <div class="card-win">
+      <img id="win-sprite" class="sprite-grande" src="../../datos/sprites/SraTomateEat.png" alt="Sra. Tomate comiendo" />
+      <div class="estrellas" id="estrellas"></div>
+      <h2 id="win-txt">¡Muy bien!</h2>
+      <img id="win-img" class="win-plato" alt="plato listo" />
+      <div class="win-botones">
+        <button type="button" id="btn-otro" class="btn-grande" data-narrar="Otro platillo">
+          <img src="../../datos/pictogramas/plato.png" data-picto="plato" alt="" onerror="pictoFallback(this)" />
+          OTRO PLATILLO
+        </button>
+        <button type="button" id="btn-win-logros" class="btn-grande btn-oro" data-narrar="Mis logros">
+          <img src="../../datos/pictogramas/trofeo.png" data-picto="trofeo" alt="" onerror="pictoFallback(this)" />
+          LOGROS
+        </button>
+      </div>
+      <p class="nota">Pictogramas ARASAAC · CC BY-NC-SA · Sergio Palao</p>
+    </div>
+  </div>
+  <div id="confeti" class="confeti" aria-hidden="true"></div>
+
+  <p class="credit">
+    Juego accesible CAA para la Asociación Educativa Kallpa · Modalidad 1 (la Sra. Tomate pregunta y guía con pistas) ·
+    Pictogramas de <a href="https://arasaac.org">ARASAAC</a> (autor: Sergio Palao, CC BY-NC-SA, Gobierno de Aragón).
+  </p>
+
+  <script src="js/agente.js"></script>
+  <script src="js/voz.js"></script>
+  <script src="js/sonido.js"></script>
+  <script src="js/jugadores.js"></script>
+  <script src="js/minijuegos.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>

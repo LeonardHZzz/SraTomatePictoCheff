@@ -1,0 +1,25 @@
+id,nombre,articulo,categoria,dificultad_visual,color,origen,sabor,arasaac_keyword,arasaac_id,archivo
+masa,masa,la,cereal,3,blanco,,,masa,32476,pictogramas/masa.png
+tomate,tomate,el,verdura,1,rojo,huerto,,tomate,2594,pictogramas/tomate.png
+queso,queso,el,lacteo,1,amarillo,vaca,,queso,2541,pictogramas/queso.png
+jamon,jamón,el,carne,2,rosa,cerdo,,jamón,2433,pictogramas/jamon.png
+pan,pan,el,cereal,1,marron,,,pan,2494,pictogramas/pan.png
+lechuga,lechuga,la,verdura,2,verde,huerto,,lechuga,2446,pictogramas/lechuga.png
+palta,palta,la,fruta,2,verde,arbol,,aguacate,8009,pictogramas/palta.png
+pollo,pollo,el,carne,2,marron,gallina,,pollo asado,4952,pictogramas/pollo.png
+arroz,arroz,el,cereal,2,blanco,,,arroz,6911,pictogramas/arroz.png
+huevo,huevo,el,otro,1,blanco,gallina,,huevo,2427,pictogramas/huevo.png
+cereal,cereal,el,cereal,2,amarillo,,,cereales,2328,pictogramas/cereal.png
+leche,leche,la,lacteo,1,blanco,vaca,,leche,2445,pictogramas/leche.png
+platano,plátano,el,fruta,1,amarillo,arbol,dulce,plátano,2530,pictogramas/platano.png
+fresa,fresa,la,fruta,1,rojo,huerto,dulce,fresa,2400,pictogramas/fresa.png
+papa,papa,la,verdura,2,marron,huerto,,patata,2503,pictogramas/papa.png
+zanahoria,zanahoria,la,verdura,1,naranja,huerto,,zanahoria,2619,pictogramas/zanahoria.png
+cebolla,cebolla,la,verdura,2,blanco,huerto,,cebolla,2323,pictogramas/cebolla.png
+carne,carne,la,carne,2,rojo,vaca,,carne,2316,pictogramas/carne.png
+harina,harina,la,cereal,3,blanco,,,harina,8600,pictogramas/harina.png
+azucar,azúcar,el,otro,2,blanco,,dulce,azúcar,25560,pictogramas/azucar.png
+manzana,manzana,la,fruta,1,rojo,arbol,dulce,manzana,2462,pictogramas/manzana.png
+naranja,naranja,la,fruta,1,naranja,arbol,dulce,naranja,2483,pictogramas/naranja.png
+limon,limón,el,fruta,1,verde,arbol,acido,limón,3022,pictogramas/limon.png
+agua,agua,el,bebida,1,,,,agua,32464,pictogramas/agua.png

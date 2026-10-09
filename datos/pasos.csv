@@ -1,0 +1,16 @@
+id,nombre,gesto,herramienta,instruccion,arasaac_keyword,arasaac_id,archivo
+lavar,lavar,frotar,agua,Frota para lavar,lavar,34826,pictogramas/paso_lavar.png
+pelar,pelar,trazos,mano,Desliza el dedo sobre la cáscara para pelar,pelar,5537,pictogramas/paso_pelar.png
+cortar,cortar,cortar,cuchillo,Traza líneas de arriba hacia abajo para cortar,cortar,5975,pictogramas/paso_cortar.png
+amasar,estirar,frotar,rodillo,Mueve el rodillo de un lado a otro para estirar,amasar,8015,pictogramas/paso_amasar.png
+untar,untar,cubrir,cuchillo,Pinta toda la superficie para untar,untar,7292,pictogramas/paso_untar.png
+mezclar,mezclar,girar,bol,Haz círculos dentro del bol para mezclar,mezclar,5515,pictogramas/paso_mezclar.png
+batir,batir,girar,bol,Haz círculos rápidos para batir,batir,5924,pictogramas/paso_batir.png
+exprimir,exprimir,presionar,mano,Toca muchas veces para exprimir,exprimir,5994,pictogramas/paso_exprimir.png
+licuar,licuar,mantener,batidora,Mantén presionado el botón para licuar,batidora,17175,pictogramas/paso_licuar.png
+poner,poner,arrastrar,mano,Arrastra cada ingrediente a su lugar,poner,32757,pictogramas/poner.png
+cocinar,cocinar,fuego,olla,Arrastra la olla al fuego,cocinar,2342,pictogramas/cocinar.png
+hervir,hervir,fuego,olla,Arrastra la olla al fuego para hervir,hervir,5485,pictogramas/paso_hervir.png
+freir,freír,fuego,fuego,Arrastra la sartén al fuego para freír,freír,39476,pictogramas/paso_freir.png
+hornear,hornear,horno,horno,Arrastra la bandeja al horno,hornear,5487,pictogramas/paso_hornear.png
+servir,servir,servir,plato,Arrastra la comida al plato para servir,servir,7247,pictogramas/paso_servir.png

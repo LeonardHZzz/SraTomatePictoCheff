@@ -1,0 +1,832 @@
+{
+ "version": "hito1-v3",
+ "nota": "Banco de retos PictoChef (Modalidad 1). La Sra. Tomate pregunta el TIPO de platillo, pide los ingredientes y luego los PASOS de preparación. 'requiere' define un orden parcial: un paso es válido cuando todos sus requisitos ya se hicieron.",
+ "tipos": [
+  {
+   "id": "desayuno",
+   "nombre": "desayuno",
+   "arasaac_id": 4626,
+   "picto": "tipo_desayuno"
+  },
+  {
+   "id": "almuerzo",
+   "nombre": "almuerzo y estofados",
+   "arasaac_id": 28207,
+   "picto": "tipo_almuerzo"
+  },
+  {
+   "id": "postre",
+   "nombre": "postre",
+   "arasaac_id": 7216,
+   "picto": "tipo_postre"
+  },
+  {
+   "id": "bebida",
+   "nombre": "bebida",
+   "arasaac_id": 4575,
+   "picto": "tipo_bebida"
+  },
+  {
+   "id": "lonche",
+   "nombre": "lonche",
+   "arasaac_id": 4695,
+   "picto": "tipo_lonche"
+  }
+ ],
+ "recetas": [
+  {
+   "id": "cereal_leche",
+   "nombre": "cereal con leche",
+   "articulo": "un",
+   "tipo": "desayuno",
+   "ingredientes": [
+    "cereal",
+    "leche",
+    "platano"
+   ],
+   "arasaac_id": 4626,
+   "pasos": [
+    {
+     "paso": "pelar",
+     "objetos": [
+      "platano"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "cortar",
+     "objetos": [
+      "platano"
+     ],
+     "requiere": [
+      "pelar"
+     ]
+    },
+    {
+     "paso": "mezclar",
+     "objetos": [
+      "cereal",
+      "leche",
+      "platano"
+     ],
+     "requiere": [
+      "cortar"
+     ]
+    },
+    {
+     "paso": "servir",
+     "objetos": [],
+     "requiere": [
+      "mezclar"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "pan_palta",
+   "nombre": "pan con palta",
+   "articulo": "un",
+   "tipo": "desayuno",
+   "ingredientes": [
+    "pan",
+    "palta",
+    "huevo"
+   ],
+   "arasaac_id": 2787,
+   "pasos": [
+    {
+     "paso": "cortar",
+     "objetos": [
+      "palta"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "freir",
+     "objetos": [
+      "huevo"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "untar",
+     "objetos": [
+      "palta"
+     ],
+     "requiere": [
+      "cortar"
+     ],
+     "sobre": "pan"
+    },
+    {
+     "paso": "servir",
+     "objetos": [],
+     "requiere": [
+      "untar",
+      "freir"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "tortilla",
+   "nombre": "tortilla",
+   "articulo": "una",
+   "tipo": "desayuno",
+   "ingredientes": [
+    "huevo",
+    "queso",
+    "jamon"
+   ],
+   "arasaac_id": 4967,
+   "pasos": [
+    {
+     "paso": "batir",
+     "objetos": [
+      "huevo"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "cortar",
+     "objetos": [
+      "jamon"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "mezclar",
+     "objetos": [
+      "huevo",
+      "queso",
+      "jamon"
+     ],
+     "requiere": [
+      "batir",
+      "cortar"
+     ]
+    },
+    {
+     "paso": "freir",
+     "objetos": [],
+     "requiere": [
+      "mezclar"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "estofado",
+   "nombre": "estofado de pollo",
+   "articulo": "un",
+   "tipo": "almuerzo",
+   "ingredientes": [
+    "pollo",
+    "papa",
+    "zanahoria",
+    "cebolla"
+   ],
+   "arasaac_id": 5467,
+   "pasos": [
+    {
+     "paso": "lavar",
+     "objetos": [
+      "papa",
+      "zanahoria"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "cortar",
+     "objetos": [
+      "papa",
+      "zanahoria",
+      "cebolla"
+     ],
+     "requiere": [
+      "lavar"
+     ]
+    },
+    {
+     "paso": "cocinar",
+     "objetos": [
+      "pollo",
+      "papa",
+      "zanahoria",
+      "cebolla"
+     ],
+     "requiere": [
+      "cortar"
+     ]
+    },
+    {
+     "paso": "servir",
+     "objetos": [],
+     "requiere": [
+      "cocinar"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "arroz_pollo",
+   "nombre": "arroz con pollo",
+   "articulo": "un",
+   "tipo": "almuerzo",
+   "ingredientes": [
+    "arroz",
+    "pollo",
+    "tomate"
+   ],
+   "arasaac_id": 36692,
+   "pasos": [
+    {
+     "paso": "lavar",
+     "objetos": [
+      "tomate"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "cortar",
+     "objetos": [
+      "pollo",
+      "tomate"
+     ],
+     "requiere": [
+      "lavar"
+     ]
+    },
+    {
+     "paso": "cocinar",
+     "objetos": [
+      "arroz",
+      "pollo",
+      "tomate"
+     ],
+     "requiere": [
+      "cortar"
+     ]
+    },
+    {
+     "paso": "servir",
+     "objetos": [],
+     "requiere": [
+      "cocinar"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sopa",
+   "nombre": "sopa de verduras",
+   "articulo": "una",
+   "tipo": "almuerzo",
+   "ingredientes": [
+    "papa",
+    "zanahoria",
+    "cebolla",
+    "agua"
+   ],
+   "arasaac_id": 2573,
+   "pasos": [
+    {
+     "paso": "lavar",
+     "objetos": [
+      "papa",
+      "zanahoria"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "pelar",
+     "objetos": [
+      "papa"
+     ],
+     "requiere": [
+      "lavar"
+     ]
+    },
+    {
+     "paso": "cortar",
+     "objetos": [
+      "papa",
+      "zanahoria",
+      "cebolla"
+     ],
+     "requiere": [
+      "pelar"
+     ]
+    },
+    {
+     "paso": "hervir",
+     "objetos": [
+      "agua",
+      "papa",
+      "zanahoria",
+      "cebolla"
+     ],
+     "requiere": [
+      "cortar"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ensalada",
+   "nombre": "ensalada",
+   "articulo": "una",
+   "tipo": "almuerzo",
+   "ingredientes": [
+    "lechuga",
+    "tomate",
+    "palta",
+    "pollo"
+   ],
+   "arasaac_id": 2377,
+   "pasos": [
+    {
+     "paso": "lavar",
+     "objetos": [
+      "lechuga",
+      "tomate"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "cortar",
+     "objetos": [
+      "lechuga",
+      "tomate",
+      "palta"
+     ],
+     "requiere": [
+      "lavar"
+     ]
+    },
+    {
+     "paso": "mezclar",
+     "objetos": [
+      "lechuga",
+      "tomate",
+      "palta",
+      "pollo"
+     ],
+     "requiere": [
+      "cortar"
+     ]
+    },
+    {
+     "paso": "servir",
+     "objetos": [],
+     "requiere": [
+      "mezclar"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "macedonia",
+   "nombre": "ensalada de frutas",
+   "articulo": "una",
+   "tipo": "postre",
+   "ingredientes": [
+    "platano",
+    "fresa",
+    "manzana",
+    "naranja"
+   ],
+   "arasaac_id": 8620,
+   "pasos": [
+    {
+     "paso": "lavar",
+     "objetos": [
+      "fresa",
+      "manzana"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "pelar",
+     "objetos": [
+      "platano",
+      "naranja"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "cortar",
+     "objetos": [
+      "fresa",
+      "manzana",
+      "platano",
+      "naranja"
+     ],
+     "requiere": [
+      "lavar",
+      "pelar"
+     ]
+    },
+    {
+     "paso": "mezclar",
+     "objetos": [
+      "fresa",
+      "manzana",
+      "platano",
+      "naranja"
+     ],
+     "requiere": [
+      "cortar"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "torta",
+   "nombre": "torta",
+   "articulo": "una",
+   "tipo": "postre",
+   "ingredientes": [
+    "harina",
+    "huevo",
+    "leche",
+    "azucar"
+   ],
+   "arasaac_id": 2502,
+   "pasos": [
+    {
+     "paso": "batir",
+     "objetos": [
+      "huevo",
+      "azucar"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "mezclar",
+     "objetos": [
+      "harina",
+      "leche"
+     ],
+     "requiere": [
+      "batir"
+     ]
+    },
+    {
+     "paso": "hornear",
+     "objetos": [],
+     "requiere": [
+      "mezclar"
+     ]
+    },
+    {
+     "paso": "servir",
+     "objetos": [],
+     "requiere": [
+      "hornear"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "panqueques",
+   "nombre": "panqueques de plátano",
+   "articulo": "unos",
+   "tipo": "postre",
+   "ingredientes": [
+    "harina",
+    "huevo",
+    "leche",
+    "platano"
+   ],
+   "arasaac_id": 37849,
+   "pasos": [
+    {
+     "paso": "pelar",
+     "objetos": [
+      "platano"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "mezclar",
+     "objetos": [
+      "harina",
+      "huevo",
+      "leche",
+      "platano"
+     ],
+     "requiere": [
+      "pelar"
+     ]
+    },
+    {
+     "paso": "freir",
+     "objetos": [],
+     "requiere": [
+      "mezclar"
+     ]
+    },
+    {
+     "paso": "servir",
+     "objetos": [],
+     "requiere": [
+      "freir"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "batido",
+   "nombre": "batido de fruta",
+   "articulo": "un",
+   "tipo": "bebida",
+   "ingredientes": [
+    "leche",
+    "platano",
+    "fresa"
+   ],
+   "arasaac_id": 8503,
+   "pasos": [
+    {
+     "paso": "lavar",
+     "objetos": [
+      "fresa"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "pelar",
+     "objetos": [
+      "platano"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "licuar",
+     "objetos": [
+      "leche",
+      "platano",
+      "fresa"
+     ],
+     "requiere": [
+      "lavar",
+      "pelar"
+     ]
+    },
+    {
+     "paso": "servir",
+     "objetos": [],
+     "requiere": [
+      "licuar"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "jugo_naranja",
+   "nombre": "jugo de naranja",
+   "articulo": "un",
+   "tipo": "bebida",
+   "ingredientes": [
+    "naranja",
+    "agua",
+    "azucar"
+   ],
+   "arasaac_id": 2624,
+   "pasos": [
+    {
+     "paso": "cortar",
+     "objetos": [
+      "naranja"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "exprimir",
+     "objetos": [
+      "naranja"
+     ],
+     "requiere": [
+      "cortar"
+     ]
+    },
+    {
+     "paso": "mezclar",
+     "objetos": [
+      "agua",
+      "azucar"
+     ],
+     "requiere": [
+      "exprimir"
+     ]
+    },
+    {
+     "paso": "servir",
+     "objetos": [],
+     "requiere": [
+      "mezclar"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "limonada",
+   "nombre": "limonada",
+   "articulo": "una",
+   "tipo": "bebida",
+   "ingredientes": [
+    "limon",
+    "agua",
+    "azucar"
+   ],
+   "arasaac_id": 6551,
+   "pasos": [
+    {
+     "paso": "cortar",
+     "objetos": [
+      "limon"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "exprimir",
+     "objetos": [
+      "limon"
+     ],
+     "requiere": [
+      "cortar"
+     ]
+    },
+    {
+     "paso": "mezclar",
+     "objetos": [
+      "agua",
+      "azucar"
+     ],
+     "requiere": [
+      "exprimir"
+     ]
+    },
+    {
+     "paso": "servir",
+     "objetos": [],
+     "requiere": [
+      "mezclar"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sandwich",
+   "nombre": "sándwich",
+   "articulo": "un",
+   "tipo": "lonche",
+   "ingredientes": [
+    "pan",
+    "jamon",
+    "queso",
+    "lechuga"
+   ],
+   "arasaac_id": 3383,
+   "pasos": [
+    {
+     "paso": "lavar",
+     "objetos": [
+      "lechuga"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "cortar",
+     "objetos": [
+      "pan"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "poner",
+     "objetos": [
+      "jamon",
+      "queso",
+      "lechuga"
+     ],
+     "requiere": [
+      "lavar",
+      "cortar"
+     ],
+     "sobre": "pan"
+    },
+    {
+     "paso": "servir",
+     "objetos": [],
+     "requiere": [
+      "poner"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "pizza",
+   "nombre": "pizza",
+   "articulo": "una",
+   "tipo": "lonche",
+   "ingredientes": [
+    "masa",
+    "tomate",
+    "queso",
+    "jamon"
+   ],
+   "arasaac_id": 2527,
+   "pasos": [
+    {
+     "paso": "amasar",
+     "objetos": [
+      "masa"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "untar",
+     "objetos": [
+      "tomate"
+     ],
+     "requiere": [
+      "amasar"
+     ],
+     "sobre": "masa"
+    },
+    {
+     "paso": "poner",
+     "objetos": [
+      "queso",
+      "jamon"
+     ],
+     "requiere": [
+      "untar"
+     ],
+     "sobre": "masa"
+    },
+    {
+     "paso": "hornear",
+     "objetos": [],
+     "requiere": [
+      "poner"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "hamburguesa",
+   "nombre": "hamburguesa",
+   "articulo": "una",
+   "tipo": "lonche",
+   "ingredientes": [
+    "pan",
+    "carne",
+    "lechuga",
+    "tomate"
+   ],
+   "arasaac_id": 2419,
+   "pasos": [
+    {
+     "paso": "cocinar",
+     "objetos": [
+      "carne"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "lavar",
+     "objetos": [
+      "lechuga",
+      "tomate"
+     ],
+     "requiere": []
+    },
+    {
+     "paso": "cortar",
+     "objetos": [
+      "tomate"
+     ],
+     "requiere": [
+      "lavar"
+     ]
+    },
+    {
+     "paso": "poner",
+     "objetos": [
+      "carne",
+      "lechuga",
+      "tomate"
+     ],
+     "requiere": [
+      "cocinar",
+      "cortar"
+     ],
+     "sobre": "pan"
+    }
+   ]
+  }
+ ]
+}
