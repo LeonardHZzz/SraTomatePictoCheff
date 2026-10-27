@@ -40,7 +40,6 @@ function cargarImg(id) {
   return MJ_IMG[id];
 }
 
-// --- dibujo de utensilios ----------------------------------------------
 const TINTA = "#1a1208";
 function rr(ctx, x, y, w, h, r) {
   ctx.beginPath();
@@ -297,7 +296,6 @@ class Minijuego {
     this.cv.removeEventListener("pointerleave", this._ev.leave);
   }
 
-  // Ayuda motora: la Sra. Tomate termina el gesto poco a poco.
   ayudar() {
     if (this.hecho || this._ayudaTimer) return;
     this.ayudaUsada = true;
@@ -307,7 +305,6 @@ class Minijuego {
     }, 450);
   }
 
-  // --- progreso -----------------------------------------------------
   _setP(p) {
     if (this.hecho) return;
     this.p = Math.max(this.p, Math.min(1, p));
@@ -332,7 +329,6 @@ class Minijuego {
     setTimeout(() => this.alTerminar({ segundos, ayuda: this.ayudaUsada, precision }), 900);
   }
 
-  // --- partículas -------------------------------------------------------
   _chispa(x, y, color) {
     const a = Math.random() * Math.PI * 2;
     const v = 2 + Math.random() * 5;
@@ -348,7 +344,6 @@ class Minijuego {
     this.particulas.push({ x, y, vx: (Math.random() - 0.5) * 4, vy: -3, w: 18, h: 60, rot: 0, vr: (Math.random() - 0.5) * 0.3, color, vida: 1, g: 0.35, tipo: "t" });
   }
 
-  // --- eventos ------------------------------------------------------------
   _pos(e) {
     const r = this.cv.getBoundingClientRect();
     return { x: ((e.clientX - r.left) * MJ_W) / r.width, y: ((e.clientY - r.top) * MJ_H) / r.height };
@@ -383,9 +378,6 @@ class Minijuego {
     this.trazoPts = null;
   }
 
-  // =====================================================================
-  // Preparación de cada tipo de gesto
-  // =====================================================================
   _prep() {
     const g = this.gesto;
     const O = this.objs;
@@ -442,7 +434,6 @@ class Minijuego {
     }
   }
 
-  // Una "unidad" de progreso automática (modo tocar y ayuda motora)
   _unidad() {
     if (this.hecho) return;
     const g = this.gesto;
@@ -479,7 +470,6 @@ class Minijuego {
     }
   }
 
-  // --- gestos libres ---------------------------------------------------------
   _g(tipo, p, prev) {
     const g = this.gesto;
     if (g === "frotar" && tipo === "move" && prev) {
@@ -498,7 +488,7 @@ class Minijuego {
     } else if (g === "girar" && tipo === "move" && prev) {
       const cx = 320;
       const cy = 245;
-      const k = 1.6; // la elipse del bol se trata como círculo
+      const k = 1.6; 
       const d = Math.hypot(p.x - cx, (p.y - cy) * k);
       if (d > 20 && d < 240) {
         const a1 = Math.atan2((prev.y - cy) * k, prev.x - cx);
@@ -585,7 +575,6 @@ class Minijuego {
     }
   }
 
-  // Marca un corte o una tira pelada en el objeto actual
   _marcar(i, mx = null) {
     const c = this.cola[this.actual];
     if (!c) return;
@@ -638,7 +627,6 @@ class Minijuego {
     this._setP(this.toques / this.cfg.presionar);
   }
 
-  // --- tiempo -------------------------------------------------------------------
   _tick(dt, t) {
     const g = this.gesto;
     if (g === "mantener" && !this.tocar && this.abajo && !this.hecho) {
@@ -673,10 +661,6 @@ class Minijuego {
     it.y += (it.y0 - it.y) * k;
     if (Math.hypot(it.x - it.x0, it.y - it.y0) < 2) it.volviendo = false;
   }
-
-  // =====================================================================
-  // Dibujo
-  // =====================================================================
   _dibujar(t) {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, MJ_W, MJ_H);
@@ -728,7 +712,6 @@ class Minijuego {
       ctx.restore();
     }
 
-    // barra de progreso
     rr(ctx, 20, MJ_H - 30, MJ_W - 40, 18, 9);
     trazo(ctx, "#fff", 3);
     if (this.p > 0) {
@@ -760,7 +743,6 @@ class Minijuego {
     ctx.fillText(txt, MJ_W / 2, 40);
   }
 
-  // Guía animada: una mano/flecha que muestra el gesto mientras no se avanza
   _guia(t, tipo) {
     if (this.p > 0.12 || this.abajo || this.tocar) return;
     const ctx = this.ctx;
@@ -932,7 +914,6 @@ class Minijuego {
     const ctx = this.ctx;
     const cx = 320;
     const cy = 245;
-    // bol: cuerpo (detrás), boca con el contenido y borde
     ctx.beginPath();
     ctx.ellipse(cx, cy, 200, 125, 0, 0, Math.PI);
     ctx.closePath();

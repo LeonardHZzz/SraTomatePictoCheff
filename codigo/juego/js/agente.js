@@ -4,7 +4,7 @@ const CFG = {
   META: 0.7, // desempeño esperado
   THETA0: 0.35, // habilidad inicial
   D_MIN: 2, // distractores mínimos de ingredientes
-  D_MAX: 6, // distractores máximos de ingredientes
+  D_MAX: 5, // distractores máximos (despensa ≤ 9 tarjetas)
 };
 
 const ATRIBUTOS_PASO = ["herramienta", "objeto"];
@@ -21,7 +21,6 @@ function rngSemilla(seed) {
   };
 }
 
-// --- Lenguaje --------------------------------------------------------
 const DEF = { un: "el", una: "la", unos: "los", unas: "las" };
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const elIng = (g) => {
@@ -128,7 +127,8 @@ class Perfil {
 class Partida {
   constructor(perfil = new Perfil(), opciones = {}) {
     this.perfil = perfil;
-    this.politica = opciones.politica || "ig"; // "ig" | "aleatoria" | "sin_pista"
+    this.tablaQ = opciones.tablaQ !== undefined ? opciones.tablaQ : (typeof TABLA_Q !== "undefined" ? TABLA_Q : null);
+    this.politica = opciones.politica || (this.tablaQ ? "q" : "ig"); // "q" | "ig" | "aleatoria" | "sin_pista"
     this.rng = opciones.rng || Math.random;
     this.sinColor = !!opciones.sinColor; // perfil sin pistas de color (daltonismo)
     this.usadas = {};
@@ -143,7 +143,7 @@ class Partida {
     this.despensa = [];
     this.X = new Set(); // ingredientes colocados
     this.W = new Set(); // ingredientes incorrectos elegidos
-    this.Y = []; // pasos hechos (en orden)
+    this.Y = []; // pasos hechos 
     this.Wp = new Set(); // pasos distractores descartados
     this.tarjetasPaso = [];
     this.defs = {};
@@ -162,6 +162,13 @@ class Partida {
     this.estrellas = 0;
     this.terminada = false;
     this.inicio = null;
+    this.errSeg = 0;
+    this.ultimaQ = null;
+    this.pendiente = null;
+    this.usoDirecta = false;
+    this.retorno = 0;
+    this.costoAyuda = 0;
+    this.decisiones = [];
     this.accion = {
       tipo: "PREGUNTA_TIPO",
       sprite: "pregunta",
@@ -172,7 +179,6 @@ class Partida {
     return this.accion;
   }
 
-  // --- utilidades ----------------------------------------------------
   _frase(clave, vars) {
     const pool = FRASES[clave];
     const usadas = this.usadas[clave] || (this.usadas[clave] = []);
@@ -224,8 +230,6 @@ class Partida {
     return this.sinColor ? ATRIBUTOS.filter((a) => a !== "color") : ATRIBUTOS;
   }
 
-  // --- 1. elegir tipo → receta + despensa ---------------------------
-  // recetaId solo se usa en experimentos para fijar la receta a evaluar
   eligeTipo(tipoId, recetaId = null) {
     if (this.fase !== "TIPO") return this.accion;
     this.tipo = tipoId;
@@ -281,7 +285,6 @@ class Partida {
     return this._barajar([...r.ingredientes, ...cand.slice(0, nd).map((c) => c.x)]);
   }
 
-  // Pasos de la receta + distractores (θ ≥ 0.4: 1, θ ≥ 0.75: 2)
   _armarPasos(r) {
     this.defs = {};
     for (const p of r.pasos) this.defs[p.paso] = p;
@@ -296,14 +299,17 @@ class Partida {
     this.tarjetasPaso = this._barajar(Object.keys(this.defs));
   }
 
-  // --- 2. INGREDIENTES ----------------------------------------------------
-  elige(g) {
+  elige(g, segundos = null) {
     if (this.fase !== "INGREDIENTES" || this.X.has(g) || this.W.has(g)) return this.accion;
     this.t += 1;
     const r = this.receta;
-    if (r.ingredientes.includes(g)) {
+    const acierto = r.ingredientes.includes(g);
+    this._resultado(acierto);
+    if (acierto) {
       this.X.add(g);
       this._limpiarAyuda();
+      this.errSeg = 0;
+      this.ultimaQ = null;
       if (!this.faltan().length) {
         this.fase = "PASOS";
         this.accion = {
@@ -324,22 +330,27 @@ class Partida {
         };
       }
     } else {
+      const relacion = this._relacionIng(g);
       this.W.add(g);
       this.errores += 1;
-      this.h = Math.min(this.h + 1, CFG.H_MAX);
-      this.accion = this._pista({ error: g });
+      this.errSeg += 1;
+      if (this.politica !== "q") this.h = Math.min(this.h + 1, CFG.H_MAX);
+      this.accion = this._pista({ error: g, relacion, segundos });
     }
     this._log();
     return this.accion;
   }
 
-  // --- 3. PASOS -------------------------------------------------------------
-  eligePaso(id) {
+  eligePaso(id, segundos = null) {
     if (this.fase !== "PASOS" || this.Y.includes(id) || this.Wp.has(id) || !this.defs[id]) return this.accion;
     this.t += 1;
     const d = this.defs[id];
-    if (this.pasosValidos().includes(id)) {
+    const acierto = this.pasosValidos().includes(id);
+    this._resultado(acierto);
+    if (acierto) {
       this._limpiarAyuda();
+      this.errSeg = 0;
+      this.ultimaQ = null;
       this.fase = "ACCION";
       this.pasoActivo = id;
       this.inicioPaso = ahora();
@@ -352,16 +363,17 @@ class Partida {
         texto: `${this._frase("pasoOk", { p })} ${CATALOGO.pasos[id].instruccion}.`,
       };
     } else {
+      const relacion = this._relacionPaso(id);
       this.erroresPasos += 1;
+      this.errSeg += 1;
       if (d.distractor) this.Wp.add(id);
-      this.h = Math.min(this.h + 1, CFG.H_MAX);
-      this.accion = this._pistaPaso(id);
+      if (this.politica !== "q") this.h = Math.min(this.h + 1, CFG.H_MAX);
+      this.accion = this._pistaPaso(id, false, relacion, segundos);
     }
     this._log();
     return this.accion;
   }
 
-  // La interfaz avisa que el minijuego del paso activo terminó.
   pasoHecho(metricas = {}) {
     if (this.fase !== "ACCION") return this.accion;
     const id = this.pasoActivo;
@@ -383,13 +395,14 @@ class Partida {
     return this.accion;
   }
 
-  // --- AYUDA (botón o silencio prolongado) -----------------------------
-  ayuda(auto = false) {
+  ayuda(auto = false, segundos = null) {
     if (this.fase !== "INGREDIENTES" && this.fase !== "PASOS") return this.accion;
     this.t += 1;
     this.ayudas += 1;
-    this.h = Math.min(this.h + 1, CFG.H_MAX);
-    this.accion = this.fase === "INGREDIENTES" ? this._pista({ auto }) : this._pistaPaso(null, auto);
+    if (this.politica !== "q") this.h = Math.min(this.h + 1, CFG.H_MAX);
+    this.accion = this.fase === "INGREDIENTES"
+      ? this._pista({ auto, relacion: "ayuda", segundos })
+      : this._pistaPaso(null, auto, "ayuda", segundos);
     this._log();
     return this.accion;
   }
@@ -400,7 +413,149 @@ class Partida {
     this.resaltado = null;
   }
 
-  // Elección de pista según la política del agente
+  // --- Q-Learning: estado, máscara, relación del error y recompensas ---------------
+  _atributosFase(fase) {
+    return fase === "INGREDIENTES" ? this.atributosIng() : ATRIBUTOS_PASO;
+  }
+  _attrsRasgo(fase, rasgo) {
+    const permitidos = this._atributosFase(fase);
+    return QL.RASGOS[fase][rasgo].filter((a) => permitidos.includes(a));
+  }
+  mascaraQ(fase, objetivos, attr) {
+    const permitidos = this._atributosFase(fase);
+    return QL.ACCIONES.map((nombre) => {
+      if (nombre === "animar" || nombre === "directa") return true;
+      if (nombre === "doble") return objetivos.some((g) => permitidos.filter((a) => attr(g, a)).length >= 2);
+      const attrs = this._attrsRasgo(fase, nombre);
+      return objetivos.some((g) => attrs.some((a) => attr(g, a)));
+    });
+  }
+  _relacionIng(x) {
+    const M = this.faltan();
+    for (const rasgo of ["rasgo1", "rasgo2", "rasgo3"]) {
+      for (const a of QL.RASGOS.INGREDIENTES[rasgo]) {
+        const v = atributo(x, a);
+        if (v && M.some((g) => atributo(g, a) === v)) return rasgo;
+      }
+    }
+    return "nada";
+  }
+  _relacionPaso(id) {
+    if (!this.defs[id].distractor) return "prematuro";
+    const V = this.pasosValidos();
+    for (const rasgo of ["rasgo1", "rasgo2"]) {
+      const a = QL.RASGOS.PASOS[rasgo][0];
+      const v = this.attrPaso(id, a);
+      if (v && V.some((q) => this.attrPaso(q, a) === v)) return rasgo;
+    }
+    return "nada";
+  }
+  _mejorRasgo(fase, C, objetivos, attr, mascara, dificultad) {
+    for (const f of tablaPistasGen(C, objetivos, attr, this._atributosFase(fase), 1, dificultad)) {
+      for (const rasgo of ["rasgo1", "rasgo2", "rasgo3"]) {
+        if (mascara[QL.ACCIONES.indexOf(rasgo)] && QL.RASGOS[fase][rasgo].includes(f.A[0])) return rasgo;
+      }
+    }
+    return "ninguno";
+  }
+  _resultado(acierto) {
+    const p = this.pendiente;
+    if (p && !p.resuelta) {
+      const r = acierto ? QL.R_ACIERTO : QL.R_ERROR;
+      p.r += r;
+      p.resuelta = true;
+      this.retorno += r;
+      this.decisiones[this.decisiones.length - 1].resultado = acierto ? "acierto" : "error";
+    }
+  }
+  _accionDefecto(fase, C, objetivos, attr, mascara, dificultad) {
+    if (this.errSeg >= 3) return QL.ACCIONES.indexOf("directa");
+    if (this.errSeg === 2 && mascara[QL.ACCIONES.indexOf("doble")]) return QL.ACCIONES.indexOf("doble");
+    for (const f of tablaPistasGen(C, objetivos, attr, this._atributosFase(fase), 1, dificultad)) {
+      for (const rasgo of ["rasgo1", "rasgo2", "rasgo3"]) {
+        const i = QL.ACCIONES.indexOf(rasgo);
+        if (mascara[i] && QL.RASGOS[fase][rasgo].includes(f.A[0])) return i;
+      }
+    }
+    return QL.ACCIONES.indexOf("directa");
+  }
+  _decidirQ(fase, C, objetivos, attr, relacion, segundos, dificultad) {
+    const m = this.mascaraQ(fase, objetivos, attr);
+    const mejor = this._mejorRasgo(fase, C, objetivos, attr, m, dificultad);
+    const estado = QL.discretizar(fase, this.errSeg, this.perfil.theta, C.length, segundos, this.ultimaQ, relacion, mejor);
+    const k = QL.clave(estado);
+    if (this.tablaQ && this.tablaQ.conocido(k)) return { k, m, a: this.tablaQ.mejor(k, m), defecto: false };
+    return { k, m, a: this._accionDefecto(fase, C, objetivos, attr, m, dificultad), defecto: true };
+  }
+  _registrarQ(k, m, a, defecto) {
+    const nombre = QL.ACCIONES[a];
+    const r0 = -QL.COSTO[nombre] + (nombre === this.ultimaQ ? QL.R_REPITE : 0);
+    this.retorno += r0;
+    this.costoAyuda += QL.COSTO[nombre];
+    this.pendiente = { s: k, a, r: r0, resuelta: false };
+    this.ultimaQ = nombre;
+    if (nombre === "directa") this.usoDirecta = true;
+    const q = this.tablaQ ? this.tablaQ.valores(k).map((v) => Math.round(v * 1000) / 1000) : null;
+    this.decisiones.push({ estado: k, accion: nombre, defecto, mascara: m, q, resultado: null });
+  }
+  _etiquetaBase(fase, nivel, A) {
+    if (nivel === 0) return QL.ACCIONES.indexOf("animar");
+    if (nivel >= 3) return QL.ACCIONES.indexOf("directa");
+    if (A.length >= 2) return QL.ACCIONES.indexOf("doble");
+    for (const rasgo of ["rasgo1", "rasgo2", "rasgo3"]) {
+      if (A.length && QL.RASGOS[fase][rasgo].includes(A[0])) return QL.ACCIONES.indexOf(rasgo);
+    }
+    return QL.ACCIONES.indexOf("animar");
+  }
+  _pistaSegunPolitica(fase, C, objetivos, attr, relacion, segundos, dificultad, fragFn, directa) {
+    let { k, m, a, defecto } = this._decidirQ(fase, C, objetivos, attr, relacion, segundos, dificultad);
+    let p;
+    if (this.politica === "q") {
+      p = this._construirPistaQ(QL.ACCIONES[a], fase, C, objetivos, attr, dificultad, fragFn, directa);
+      this.h = p.nivel;
+    } else {
+      p = this._construirPista(C, objetivos, attr, this._atributosFase(fase), dificultad, fragFn, directa);
+      a = this._etiquetaBase(fase, p.nivel, this.ultimaPista.A);
+      defecto = false;
+      this.ultimaPista.tipo = QL.ACCIONES[a];
+    }
+    this._registrarQ(k, m, a, defecto);
+    return p;
+  }
+  _construirPistaQ(nombre, fase, C, objetivos, attr, dificultad, fragFn, directa) {
+    if (nombre === "animar") {
+      this.atenuados = new Set();
+      this.resaltado = null;
+      this.ultimaPista = { nivel: 0, g: null, A: [], vals: [], S: C, ig: 0, tabla: [], tipo: "animar" };
+      return { nivel: 0, fila: ["intentar"], frase: "Intenta otra vez." };
+    }
+    let sel = null;
+    let tabla = [];
+    if (nombre === "doble") {
+      tabla = tablaPistasGen(C, objetivos, attr, this._atributosFase(fase), 2, dificultad);
+      sel = this._elegir(tabla);
+    } else if (nombre !== "directa") {
+      const attrs = this._attrsRasgo(fase, nombre);
+      if (attrs.length) {
+        tabla = tablaPistasGen(C, objetivos, attr, attrs, 1, dificultad);
+        sel = this._elegir(tabla);
+      }
+    }
+    if (!sel) {
+      const g = [...objetivos].sort((x, y) => dificultad(x) - dificultad(y))[0];
+      this.resaltado = g;
+      this.atenuados = new Set(C.filter((x) => x !== g));
+      this.ultimaPista = { nivel: 3, g, A: [], vals: [], S: [g], ig: log2(Math.max(1, C.length)), tabla: [], tipo: "directa" };
+      return { nivel: 3, ...directa(g) };
+    }
+    const nivel = QL.NIVEL[nombre];
+    this.pistasUsadas.add(sel.clave);
+    this.resaltado = null;
+    this.atenuados = nivel >= 2 ? new Set(C.filter((x) => !sel.S.includes(x))) : new Set();
+    this.ultimaPista = { nivel, g: sel.g, A: sel.A, vals: sel.vals, S: sel.S, ig: sel.ig, tabla: tabla.slice(0, 6), tipo: nombre };
+    return { nivel, fila: ["buscar", ...sel.A.map((x, i) => pictoValor(x, sel.vals[i]))], frase: fragFn(sel) };
+  }
+
   _elegir(tabla) {
     if (!tabla.length) return null;
     let libres = tabla.filter((f) => !this.pistasUsadas.has(f.clave));
@@ -409,7 +564,6 @@ class Partida {
     return libres[0];
   }
 
-  // Construye la pista para un nivel. Devuelve { nivel, fila, frase, objetivo, S, tabla }.
   _construirPista(C, objetivos, attr, atributos, dificultad, fragFn, directa) {
     let nivel = this.h;
     let tabla = [];
@@ -427,8 +581,8 @@ class Partida {
     if (this.politica === "sin_pista" && nivel < 3) {
       this.atenuados = new Set();
       this.resaltado = null;
-      this.ultimaPista = { nivel, g: null, A: [], vals: [], S: C, ig: 0, tabla: [] };
-      return { nivel, fila: ["intentar"], frase: "Intenta otra vez." };
+      this.ultimaPista = { nivel: 0, g: null, A: [], vals: [], S: C, ig: 0, tabla: [] };
+      return { nivel: 0, fila: ["intentar"], frase: "Intenta otra vez." };
     }
     if (nivel < 3 && !sel) nivel = 3;
     if (nivel === 3) {
@@ -449,7 +603,7 @@ class Partida {
     };
   }
 
-  _pista({ error = null, auto = false } = {}) {
+  _pista({ error = null, auto = false, relacion = "ayuda", segundos = null } = {}) {
     const filas = [];
     const partes = [];
     if (error) {
@@ -457,8 +611,8 @@ class Partida {
       partes.push(this._frase("error", this._vars(error)));
     } else if (auto) partes.push("¿Te ayudo?");
     partes.push(this._frase("pista", {}));
-    const p = this._construirPista(
-      this.disponibles(), this.faltan(), atributo, this.atributosIng(),
+    const p = this._pistaSegunPolitica(
+      "INGREDIENTES", this.disponibles(), this.faltan(), atributo, relacion, segundos,
       (g) => CATALOGO.ingredientes[g].dificultad,
       (sel) => `Busca algo ${sel.A.map((a, i) => fragmento(a, sel.vals[i])).join(" y ")}.`,
       (g) => ({ fila: ["buscar", g], frase: `¡Es ${elIng(g)}! Tócalo.` })
@@ -469,18 +623,19 @@ class Partida {
     return { tipo: "PISTA", fase: "INGREDIENTES", sprite: "pregunta", nivel: p.nivel, error, ingrediente: this.ultimaPista.g, filas, texto: partes.join(" ") };
   }
 
-  _pistaPaso(errorId = null, auto = false) {
+  _pistaPaso(errorId = null, auto = false, relacion = "ayuda", segundos = null) {
     const r = this.receta;
     const filas = [];
     const partes = [];
     if (errorId) {
       const d = this.defs[errorId];
       filas.push(["no", `paso_${errorId}`]);
-      partes.push(d.distractor ? `${cap(paraRec(r))} no hay que ${descPaso(d, r)}.` : `Todavía no podemos ${descPaso(d, r)}.`);
+      const que = d.objetos.length ? descPaso(d, r) : CATALOGO.pasos[d.paso].nombre;
+      partes.push(d.distractor ? `${cap(paraRec(r))} no hay que ${que}.` : `Todavía no podemos ${descPaso(d, r)}.`);
     } else if (auto) partes.push("¿Te ayudo?");
     partes.push(this._frase("pista", {}));
-    const p = this._construirPista(
-      this.tarjetasDisponibles(), this.pasosValidos(), (x, a) => this.attrPaso(x, a), ATRIBUTOS_PASO,
+    const p = this._pistaSegunPolitica(
+      "PASOS", this.tarjetasDisponibles(), this.pasosValidos(), (x, a) => this.attrPaso(x, a), relacion, segundos,
       (id) => r.pasos.findIndex((q) => q.paso === id),
       (sel) => `Primero hay que hacer algo ${sel.A.map((a, i) => fragmento(a, sel.vals[i])).join(" y ")}.`,
       (id) => ({ fila: ["primero", `paso_${id}`], frase: `¡Hay que ${descPaso(this.defs[id], r)}! Tócalo.` })
@@ -491,12 +646,12 @@ class Partida {
     return { tipo: "PISTA", fase: "PASOS", sprite: "pregunta", nivel: p.nivel, error: errorId, paso: this.ultimaPista.g, filas, texto: partes.join(" ") };
   }
 
-  // --- 4. victoria ------------------------------------------------------
   _victoria() {
     const r = this.receta;
     this.fase = "VICTORIA";
     this.terminada = true;
     this._limpiarAyuda();
+    this.pendiente = null;
     const faltas = this.errores + this.erroresPasos;
     const total = faltas + this.ayudas;
     this.estrellas = total === 0 ? 3 : total <= 2 ? 2 : 1;
@@ -515,6 +670,11 @@ class Partida {
       theta_antes: Math.round(antes * 100) / 100,
       theta: Math.round(this.perfil.theta * 100) / 100,
       motricidad: this.motricidad.map((m) => ({ ...m, segundos: Math.round(m.segundos * 10) / 10 })),
+      politica: this.politica,
+      retorno: Math.round(this.retorno * 1000) / 1000,
+      costo_ayuda: Math.round(this.costoAyuda * 100) / 100,
+      uso_directa: this.usoDirecta,
+      decisiones: this.decisiones.map((d) => ({ estado: d.estado, accion: d.accion, defecto: d.defecto, resultado: d.resultado })),
     };
     this.accion = {
       tipo: "VICTORIA",
@@ -526,38 +686,4 @@ class Partida {
     this._log();
     return this.accion;
   }
-}
-
-function jugarSimulado(receta, politica = "ig", seed = 7, perfil = null, params = {}) {
-  const pConoce = params.pConoce ?? 0.5;
-  const pOrden = params.pOrden ?? 0.5;
-  const pSigue = params.pSigue ?? 0.9;
-  const rnd = rngSemilla(seed);
-  const p = new Partida(perfil || new Perfil(), { politica, rng: rngSemilla(seed * 31 + 7) });
-  p.eligeTipo(receta.tipo, receta.id);
-  const conoce = new Set(receta.ingredientes.filter(() => rnd() < pConoce));
-  const azar = (xs) => xs[Math.floor(rnd() * xs.length)];
-  let guard = 0;
-  while (!p.terminada && guard++ < 120) {
-    let pick;
-    if (p.fase === "INGREDIENTES") {
-      const C = p.disponibles().filter((x) => !p.atenuados.has(x));
-      if (p.accion.tipo === "PISTA" && rnd() < pSigue) pick = azar(p.ultimaPista.S.filter((x) => C.includes(x)));
-      if (!pick) {
-        const sabe = p.faltan().filter((g) => conoce.has(g));
-        pick = sabe.length ? azar(sabe) : azar(C);
-      }
-      p.elige(pick);
-    } else if (p.fase === "PASOS") {
-      const C = p.tarjetasDisponibles().filter((x) => !p.atenuados.has(x));
-      if (p.accion.tipo === "PISTA" && rnd() < pSigue) pick = azar(p.ultimaPista.S.filter((x) => C.includes(x)));
-      if (!pick) pick = rnd() < pOrden ? azar(p.pasosValidos()) : azar(C);
-      p.eligePaso(pick);
-    } else if (p.fase === "ACCION") {
-      pick = p.pasoActivo;
-      p.pasoHecho({ segundos: 0 });
-    }
-    p.historial[p.historial.length - 1].jugador = pick;
-  }
-  return p;
 }

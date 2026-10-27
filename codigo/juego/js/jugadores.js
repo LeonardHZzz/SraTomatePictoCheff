@@ -126,10 +126,10 @@ const Jugadores = {
     };
   },
 
-  // --- exportar / importar ------------------------------------------------
   csv(ids = null) {
     const cols = ["jugador", "fecha", "receta", "tipo", "estrellas", "errores_ingredientes", "errores_pasos",
-      "ayudas", "ayudas_motoras", "segundos", "desempeno", "theta_antes", "theta", "motricidad"];
+      "ayudas", "ayudas_motoras", "segundos", "desempeno", "theta_antes", "theta", "motricidad",
+      "politica", "retorno_q", "costo_ayuda", "uso_directa", "decisiones_q"];
     const esc = (v) => {
       const s = v == null ? "" : String(v);
       return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -140,7 +140,9 @@ const Jugadores = {
       for (const p of j.partidas) {
         const motr = (p.motricidad || []).map((m) => `${m.paso}:${m.segundos}s${m.ayuda ? "+ayuda" : ""}`).join(" | ");
         filas.push([j.nombre, p.fecha, p.receta, p.tipo, p.estrellas, p.errores_ingredientes, p.errores_pasos,
-          p.ayudas, p.ayudas_motoras, p.segundos, p.desempeno, p.theta_antes, p.theta, motr].map(esc).join(","));
+          p.ayudas, p.ayudas_motoras, p.segundos, p.desempeno, p.theta_antes, p.theta, motr,
+          p.politica ?? "", p.retorno ?? "", p.costo_ayuda ?? "", p.uso_directa ?? "",
+          (p.decisiones || []).map((d) => `${d.estado}>${d.accion}:${d.resultado || "-"}`).join(" | ")].map(esc).join(","));
       }
     }
     return "﻿" + filas.join("\n");

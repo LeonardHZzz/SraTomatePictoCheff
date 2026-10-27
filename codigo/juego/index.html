@@ -38,13 +38,12 @@
       </details>
       <label class="chip"><input id="terapeuta" type="checkbox" /> Terapeuta</label>
       <button type="button" id="btn-registro" class="chip">Registro</button>
-      <a class="chip" href="../experimento_A.html">Experimento A</a>
+      <a class="chip" href="TutorIA.html">TutorIA</a>
       <button type="button" id="btn-nueva">Otra receta</button>
     </div>
   </header>
 
   <main class="kitchen">
-    <!-- Sra. Tomate -->
     <section class="chef-col">
       <div class="mascot" id="mascot">
         <img id="sprite" class="sprite" src="../../datos/sprites/SraTomateIddle.png" alt="Sra. Tomate" />
@@ -66,8 +65,6 @@
         </button>
       </div>
     </section>
-
-    <!-- Centro: tipos de platillo, receta, pasos y minijuego -->
     <section class="plate-col">
       <h2 id="centro-titulo">¿Qué quieres preparar?</h2>
       <div id="tipos" class="tipos"></div>
@@ -101,16 +98,12 @@
 
       <div id="belief" class="belief"></div>
     </section>
-
-    <!-- Despensa / Pasos -->
     <section class="shelf-col">
       <h2 id="der-titulo">Despensa</h2>
       <p id="despensa-nota" class="despensa-nota"></p>
       <div id="grid" class="grid"></div>
     </section>
   </main>
-
-  <!-- Inicio de sesión: ¿quién juega? -->
   <div id="login" class="overlay show" role="dialog" aria-modal="true" aria-labelledby="login-tit">
     <div class="card-win card-ancha">
       <img class="sprite-grande" src="../../datos/sprites/SraTomateQuestion.png" alt="Sra. Tomate" />
@@ -120,7 +113,6 @@
     </div>
   </div>
 
-  <!-- Nuevo jugador -->
   <div id="nuevo" class="overlay" role="dialog" aria-modal="true" aria-labelledby="nuevo-tit">
     <div class="card-win card-ancha">
       <h2 id="nuevo-tit">Nuevo jugador</h2>
@@ -140,8 +132,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Mis logros -->
   <div id="logros" class="overlay" role="dialog" aria-modal="true" aria-labelledby="logros-tit">
     <div class="card-win card-ancha">
       <h2 id="logros-tit">Mis logros</h2>
@@ -152,8 +142,6 @@
       </button>
     </div>
   </div>
-
-  <!-- Registro del terapeuta -->
   <div id="registro" class="overlay" role="dialog" aria-modal="true" aria-labelledby="registro-tit">
     <div class="card-win card-registro">
       <h2 id="registro-tit">Registro del terapeuta</h2>
@@ -167,8 +155,6 @@
       <div class="win-botones"><button type="button" data-cerrar="registro">Cerrar</button></div>
     </div>
   </div>
-
-  <!-- Victoria -->
   <div id="win" class="overlay" role="dialog" aria-modal="true">
     <div class="card-win">
       <img id="win-sprite" class="sprite-grande" src="../../datos/sprites/SraTomateEat.png" alt="Sra. Tomate comiendo" />
@@ -195,6 +181,8 @@
     Pictogramas de <a href="https://arasaac.org">ARASAAC</a> (autor: Sergio Palao, CC BY-NC-SA, Gobierno de Aragón).
   </p>
 
+  <script src="js/politica_q.js"></script>
+  <script src="js/qlearning.js"></script>
   <script src="js/agente.js"></script>
   <script src="js/voz.js"></script>
   <script src="js/sonido.js"></script>

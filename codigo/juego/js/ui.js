@@ -225,6 +225,24 @@ function renderTerapeuta() {
         .join("")}</table>`;
     }
   }
+  const dq = p.decisiones[p.decisiones.length - 1];
+  if (dq && p.accion.tipo === "PISTA") {
+    const e = QL.describir(dq.estado);
+    const nombresRasgo = p.fase === "PASOS"
+      ? { rasgo1: "utensilio", rasgo2: "objeto", rasgo3: "—" }
+      : { rasgo1: "color", rasgo2: "grupo", rasgo3: "origen/sabor" };
+    const etiquetaAccion = (a) => (nombresRasgo[a] ? `pista de ${nombresRasgo[a]}` : { animar: "solo animar", doble: "pista doble", directa: "pista directa" }[a]);
+    const rel = { ayuda: "pidió ayuda / silencio", nada: "no comparte nada", prematuro: "paso fuera de orden" }[e.relacion] || `comparte ${nombresRasgo[e.relacion]}`;
+    const vmax = dq.q ? Math.max(...dq.q.map(Math.abs), 0.01) : 1;
+    html += `<div class="sub"><b>Q-Learning</b> · política <b>${p.politica}</b>${dq.defecto ? " · estado no visto en el entrenamiento (acción por defecto)" : ""} · retorno acumulado ${p.retorno.toFixed(2)}</div>
+      <div class="kv"><span>Estado</span><b>${dq.estado}</b></div>
+      <div class="sub">errores seguidos ${e.errores} · nivel ${e.nivel} · tarjetas ${e.tarjetas} · respuesta ${e.velocidad} · última ayuda ${e.ultima} · error: ${rel} · rasgo más informativo: ${nombresRasgo[e.mejor] || e.mejor}</div>
+      <table><tr><th>acción</th><th>Q(s,a)</th><th></th></tr>${QL.ACCIONES.map((a, i) => {
+        const v = dq.q ? dq.q[i] : 0;
+        const elegida = a === dq.accion;
+        return `<tr style="${dq.mascara[i] ? "" : "opacity:.35"}${elegida ? ";font-weight:800;background:#fff3bf" : ""}"><td>${elegida ? "➜ " : ""}${etiquetaAccion(a)}${dq.mascara[i] ? "" : " (no válida)"}</td><td>${v.toFixed(3)}</td><td style="width:40%"><div class="bar"><i style="width:${Math.max(0, (v / vmax) * 100)}%"></i></div></td></tr>`;
+      }).join("")}</table>`;
+  }
   if (p.motricidad.length) {
     html += `<div class="sub">Motricidad: ${p.motricidad.map((m) => `${CATALOGO.pasos[m.paso].nombre} ${m.segundos.toFixed(1)}s${m.ayuda ? " (ayuda)" : ""}${m.precision != null ? ` · precisión ${(m.precision * 100).toFixed(0)}%` : ""}`).join(" · ")}</div>`;
   }
@@ -266,8 +284,12 @@ function masticarVictoria() {
   }, 200);
 }
 
+let tUltimo = Date.now(); // momento en que la Sra. Tomate habló por última vez (tiempo de respuesta)
+const segundosRespuesta = () => (Date.now() - tUltimo) / 1000;
+
 function render() {
   const a = partida.accion;
+  tUltimo = Date.now();
   renderBurbuja(a);
   renderCentro();
   renderDerecha();
@@ -386,7 +408,7 @@ function onIngrediente(g, boton) {
     return;
   }
   const img = boton && boton.querySelector("img");
-  const a = partida.elige(g);
+  const a = partida.elige(g, segundosRespuesta());
   render();
   if (a.tipo === "ACIERTO" || a.tipo === "INGREDIENTES_LISTOS") {
     Sonido.acierto();
@@ -404,7 +426,7 @@ function onPaso(id, boton) {
     return;
   }
   const desc = descPaso(partida.defPaso(id), partida.receta);
-  const a = partida.eligePaso(id);
+  const a = partida.eligePaso(id, segundosRespuesta());
   render();
   if (a.tipo === "PASO_OK") {
     Sonido.acierto();
@@ -418,7 +440,7 @@ function onPaso(id, boton) {
 
 function onAyuda(auto = false) {
   if (!["INGREDIENTES", "PASOS"].includes(partida.fase)) return;
-  const a = partida.ayuda(auto);
+  const a = partida.ayuda(auto, segundosRespuesta());
   render();
   Voz.decir(auto ? a.texto : ["Pediste ayuda.", a.texto]);
 }

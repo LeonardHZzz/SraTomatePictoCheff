@@ -30,6 +30,9 @@
   <label>Semilla <input id="seed" type="number" value="3" style="width:70px" /></label>
   <button type="button" onclick="correr()">Correr partida</button>
   <button type="button" onclick="evaluar()">Evaluar políticas (800 partidas)</button>
+  <p><small>Nota: la política <b>q</b> (Q-Learning) fue entrenada con los jugadores con perfil del Experimento C
+    (<code>entrenar_q.py</code>). El jugador simple de esta página no reacciona a «solo animar», por eso aquí q no supera a ig;
+    la comparación válida está en <code>experimento_C_qlearning.py</code>.</small></p>
   <pre id="out"></pre>
 
   <h2>Espacio de estados (resumen)</h2>
@@ -47,6 +50,8 @@
   </table>
 
   <script src="juego/js/catalogo.js"></script>
+  <script src="juego/js/politica_q.js"></script>
+  <script src="juego/js/qlearning.js"></script>
   <script src="juego/js/agente.js"></script>
   <script>
     const sel = document.getElementById("receta");
@@ -83,7 +88,7 @@
       const out = ["=== EVALUACIÓN (jugador conoce 40% de los ingredientes y del orden, sigue la pista 85%) ===",
         "θ     política    err.ingr err.pasos  turnos  pista directa"];
       for (const th of [0.35, 0.8]) {
-        for (const pol of ["ig", "aleatoria", "sin_pista"]) {
+        for (const pol of ["q", "ig", "aleatoria", "sin_pista"]) {
           let e = 0, ep = 0, t = 0, d = 0;
           for (let k = 0; k < n; k++) {
             const r = CATALOGO.recetas[k % CATALOGO.recetas.length];

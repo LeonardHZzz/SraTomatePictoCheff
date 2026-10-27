@@ -24,9 +24,6 @@ Juego de cocina con pictogramas (CAA) para la **Asociación Educativa Kallpa**.
   que narra cada acción y lo que se toca, palabra bajo cada pictograma, botones grandes, botón ESCUCHAR y AYUDA.
 - **Pictogramas:** [ARASAAC](https://arasaac.org) (Sergio Palao · CC BY-NC-SA).
 
-## Ejecutar
-
-Abrir `index.html` 
 
 ```bash
 python -m http.server 8080
@@ -37,33 +34,38 @@ cd codigo
 python descargar_pictogramas.py
 ```
 
-## Experimento A (consola)
+```bash
+python generar_catalogo_js.py
 
 ```bash
 cd codigo
-python experimento_A_agente.py --receta pizza --seed 3        
-python experimento_A_agente.py --evaluar 800         
-```
-
-```bash
-python generar_catalogo_js.py
+pip install matplotlib              
+python TutorIA.py entrenar             
+python TutorIA.py evaluar     
+python TutorIA.py traza pizza visual  
+python pruebas/paridad_q.py && node pruebas/paridad_q.js 
 ```
 
 ## Estructura
 
 ```
 ├── index.html                  # portada
+├── docs/Q_LEARNING_SRA_TOMATE.md
 ├── codigo/
 │   ├── catalogo.py             # carga datos
-│   ├── agente.py               # motor de decisión de la Sra. Tomate (Python)
-│   ├── simulador.py            # jugador simulado
-│   ├── experimento_A_agente.py # Experimento A (consola) · experimento_A.ipynb · experimento_A.html
+│   ├── agente.py               # motor de decisión de la Sra. Tomate 
+│   ├── simulador.py            # jugadores simulados con perfiles
+│   ├── qlearning.py            # MDP y tabla Q de la Sra. Tomate
+│   ├── TutorIA.py · TutorIA.ipynb  # entrenar / evaluar / traza del Q-Learning
+│   ├── pruebas/                # paridad Python ↔ JS
 │   ├── generar_catalogo_js.py  # datos/ -> juego/js/catalogo.js
 │   ├── descargar_pictogramas.py
-│   └── juego/                  # Experimento B: interfaz HTML/CSS/JS
-│       └── js/ catalogo.js · agente.js · minijuegos.js · jugadores.js · voz.js · sonido.js · ui.js
+│   └── juego/                  # interfaz HTML/CSS/JS: index.html (juego) · TutorIA.html
+│       └── js/ catalogo.js · politica_q.js · qlearning.js · agente.js · simulador.js · tutoria_datos.js · minijuegos.js · jugadores.js · voz.js · sonido.js · ui.js
 └── datos/
-    ├── ingredientes.csv · conceptos.csv · pasos.csv · recetas.json 
+    ├── ingredientes.csv · conceptos.csv · pasos.csv · recetas.json
+    ├── politica_q.json         # tabla Q entrenada
+    ├── resultados/             # curva de convergencia y comparación
     ├── pictogramas/            # ARASAAC
     └── sprites/                # Sra. Tomate: Iddle · Question · Eat
 ```

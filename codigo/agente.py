@@ -1,19 +1,17 @@
-"""PictoChef · Motor de decisión de la Sra. Tomate (Modalidad 1)
-Espejo exacto de codigo/juego/js/agente.js.
-"""
 import math
 import random
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
 
+import qlearning as ql
 from catalogo import ATRIBUTOS, Catalogo
 
 H_MAX = 3
 ALPHA = 0.3
 META = 0.7
 THETA0 = 0.35
-D_MIN, D_MAX = 2, 6
+D_MIN, D_MAX = 2, 5
 ATRIBUTOS_PASO = ("herramienta", "objeto")
 
 DEF = {"un": "el", "una": "la", "unos": "los", "unas": "las"}
@@ -127,12 +125,16 @@ class Perfil:
 
 
 class Partida:
-    def __init__(self, cat: Catalogo, perfil: Perfil = None, politica="ig", rng=None, sin_color=False):
+    def __init__(self, cat: Catalogo, perfil: Perfil = None, politica="ig", rng=None, sin_color=False,
+                 tabla_q=None, aprender=False, epsilon=0.0, alfa=None, gamma=0.9):
         self.cat = cat
         self.perfil = perfil or Perfil()
-        self.politica = politica  # "ig" | "aleatoria" | "sin_pista"
+        self.politica = politica  # "ig" | "aleatoria" | "sin_pista" | "q"
         self.rng = rng or random.Random()
         self.sin_color = sin_color
+        self.tabla_q = tabla_q
+        self.aprender = aprender and tabla_q is not None
+        self.epsilon, self.alfa, self.gamma = epsilon, alfa, gamma
         self.usadas = {}
         self.historial = []
         self.iniciar()
@@ -156,6 +158,13 @@ class Partida:
         self.terminada = False
         self.inicio = None
         self.resumen = None
+        self.err_seg = 0
+        self.ultima_q = None
+        self.pendiente = None
+        self.uso_directa = False
+        self.retorno = 0.0
+        self.costo_ayuda = 0.0
+        self.decisiones = []
         self.accion = Accion(
             "PREGUNTA_TIPO",
             "¿Qué tipo de platillo quieres preparar? Elige: desayuno, almuerzo, postre, bebida o lonche.",
@@ -316,13 +325,16 @@ class Partida:
         self.rng.shuffle(self.tarjetas_paso)
 
     # --- 2. INGREDIENTES ---------------------------------------------------------
-    def elige(self, g):
+    def elige(self, g, segundos=None):
         if self.fase != "INGREDIENTES" or g in self.X or g in self.W:
             return self.accion
         self.t += 1
-        if g in self.receta.ingredientes:
+        acierto = g in self.receta.ingredientes
+        self._resultado(acierto)
+        if acierto:
             self.X.append(g)
             self._limpiar_ayuda()
+            self.err_seg, self.ultima_q = 0, None
             if not self.faltan():
                 self.fase = "PASOS"
                 self.accion = Accion(
@@ -336,21 +348,27 @@ class Partida:
                 self.accion = Accion("ACIERTO", f"{self._frase('acierto', self._vars(g))} {resto}",
                                      [["si", g]], "come", ingrediente=g)
         else:
+            relacion = self._relacion_ing(g)
             self.W.add(g)
             self.errores += 1
-            self.h = min(self.h + 1, H_MAX)
-            self.accion = self._pista(error=g)
+            self.err_seg += 1
+            if self.politica != "q":
+                self.h = min(self.h + 1, H_MAX)
+            self.accion = self._pista(error=g, relacion=relacion, segundos=segundos)
         self._log()
         return self.accion
 
     # --- 3. PASOS -----------------------------------------------------------------
-    def elige_paso(self, pid):
+    def elige_paso(self, pid, segundos=None):
         if self.fase != "PASOS" or pid in self.Y or pid in self.Wp or pid not in self.defs:
             return self.accion
         self.t += 1
         d = self.defs[pid]
-        if pid in self.pasos_validos():
+        acierto = pid in self.pasos_validos()
+        self._resultado(acierto)
+        if acierto:
             self._limpiar_ayuda()
+            self.err_seg, self.ultima_q = 0, None
             self.fase = "ACCION"
             self.paso_activo = pid
             self.inicio_paso = time.time()
@@ -359,11 +377,14 @@ class Partida:
             self.accion = Accion("PASO_OK", f"{self._frase('pasoOk', {'p': p})} {self.cat.pasos[pid].instruccion}.",
                                  [fila], "idle", paso=pid)
         else:
+            relacion = self._relacion_paso(pid)
             self.errores_pasos += 1
+            self.err_seg += 1
             if d.distractor:
                 self.Wp.add(pid)
-            self.h = min(self.h + 1, H_MAX)
-            self.accion = self._pista_paso(pid)
+            if self.politica != "q":
+                self.h = min(self.h + 1, H_MAX)
+            self.accion = self._pista_paso(pid, relacion=relacion, segundos=segundos)
         self._log()
         return self.accion
 
@@ -388,13 +409,17 @@ class Partida:
         return self.accion
 
     # --- AYUDA ----------------------------------------------------------------------
-    def ayuda(self, auto=False):
+    def ayuda(self, auto=False, segundos=None):
         if self.fase not in ("INGREDIENTES", "PASOS"):
             return self.accion
         self.t += 1
         self.ayudas += 1
-        self.h = min(self.h + 1, H_MAX)
-        self.accion = self._pista(auto=auto) if self.fase == "INGREDIENTES" else self._pista_paso(None, auto)
+        if self.politica != "q":
+            self.h = min(self.h + 1, H_MAX)
+        if self.fase == "INGREDIENTES":
+            self.accion = self._pista(auto=auto, relacion="ayuda", segundos=segundos)
+        else:
+            self.accion = self._pista_paso(None, auto, relacion="ayuda", segundos=segundos)
         self._log()
         return self.accion
 
@@ -402,6 +427,173 @@ class Partida:
         self.h = 0
         self.atenuados = set()
         self.resaltado = None
+
+    # --- Q-Learning: estado, máscara, relación del error y recompensas --------------------
+    def _atributos_fase(self, fase):
+        return self.atributos_ing() if fase == "INGREDIENTES" else ATRIBUTOS_PASO
+
+    def _attrs_rasgo(self, fase, rasgo):
+        permitidos = self._atributos_fase(fase)
+        return tuple(a for a in ql.RASGOS[fase][rasgo] if a in permitidos)
+
+    def mascara_q(self, fase, objetivos, attr):
+        permitidos = self._atributos_fase(fase)
+        m = []
+        for nombre in ql.ACCIONES:
+            if nombre in ("animar", "directa"):
+                ok = True
+            elif nombre == "doble":
+                ok = any(sum(1 for a in permitidos if attr(g, a)) >= 2 for g in objetivos)
+            else:
+                attrs = self._attrs_rasgo(fase, nombre)
+                ok = any(attr(g, a) for g in objetivos for a in attrs)
+            m.append(ok)
+        return m
+
+    def _relacion_ing(self, x):
+        M = self.faltan()
+        for rasgo in ("rasgo1", "rasgo2", "rasgo3"):
+            for a in ql.RASGOS["INGREDIENTES"][rasgo]:
+                v = self.attr(x, a)
+                if v and any(self.attr(g, a) == v for g in M):
+                    return rasgo
+        return "nada"
+
+    def _relacion_paso(self, pid):
+        if not self.defs[pid].distractor:
+            return "prematuro"
+        V = self.pasos_validos()
+        for rasgo in ("rasgo1", "rasgo2"):
+            a = ql.RASGOS["PASOS"][rasgo][0]
+            v = self.attr_paso(pid, a)
+            if v and any(self.attr_paso(q, a) == v for q in V):
+                return rasgo
+        return "nada"
+
+    def _mejor_rasgo(self, fase, C, objetivos, attr, mascara, dificultad):
+        """Rasgo (entre las acciones válidas) cuya mejor pista de un atributo tiene mayor ganancia de información."""
+        for f in tabla_pistas(C, objetivos, attr, self._atributos_fase(fase), 1, dificultad):
+            for rasgo in ("rasgo1", "rasgo2", "rasgo3"):
+                if mascara[ql.ACCIONES.index(rasgo)] and f.A[0] in ql.RASGOS[fase][rasgo]:
+                    return rasgo
+        return "ninguno"
+
+    def estado_q(self, fase, relacion, segundos, n_tarjetas, mejor="ninguno"):
+        return ql.discretizar(fase, self.err_seg, self.perfil.theta, n_tarjetas, segundos, self.ultima_q,
+                              relacion, mejor)
+
+    def _resultado(self, acierto):
+        """Primera elección después de una pista: +1 si acierta, −0,3 si se equivoca."""
+        p = self.pendiente
+        if p and not p["resuelta"]:
+            r = ql.R_ACIERTO if acierto else ql.R_ERROR
+            p["r"] += r
+            p["resuelta"] = True
+            self.retorno += r
+            self.decisiones[-1]["resultado"] = "acierto" if acierto else "error"
+
+    def _accion_defecto(self, fase, C, objetivos, attr, mascara, dificultad):
+        """Estado nunca visto en el entrenamiento: misma escalera que la política base."""
+        if self.err_seg >= 3:
+            return ql.ACCIONES.index("directa")
+        if self.err_seg == 2 and mascara[ql.ACCIONES.index("doble")]:
+            return ql.ACCIONES.index("doble")
+        tabla = tabla_pistas(C, objetivos, attr, self._atributos_fase(fase), 1, dificultad)
+        for f in tabla:
+            for rasgo in ("rasgo1", "rasgo2", "rasgo3"):
+                i = ql.ACCIONES.index(rasgo)
+                if mascara[i] and f.A[0] in ql.RASGOS[fase][rasgo]:
+                    return i
+        return ql.ACCIONES.index("directa")
+
+    def _decidir_q(self, fase, C, objetivos, attr, relacion, segundos, dificultad):
+        m = self.mascara_q(fase, objetivos, attr)
+        s = self.estado_q(fase, relacion, segundos, len(C), self._mejor_rasgo(fase, C, objetivos, attr, m, dificultad))
+        k = ql.clave(s)
+        if self.aprender:
+            return k, m, self.tabla_q.elegir(k, m, self.epsilon, self.rng), False
+        if self.tabla_q is not None and self.tabla_q.conocido(k):
+            return k, m, self.tabla_q.mejor(k, m), False
+        return k, m, self._accion_defecto(fase, C, objetivos, attr, m, dificultad), True
+
+    def _registrar_q(self, k, m, a, defecto=False):
+        if self.pendiente and self.aprender:
+            p = self.pendiente
+            self.tabla_q.actualizar(p["s"], p["a"], p["r"], k, m, self.alfa, self.gamma)
+        nombre = ql.ACCIONES[a]
+        r0 = -ql.COSTO[nombre] + (ql.R_REPITE if nombre == self.ultima_q else 0.0)
+        self.retorno += r0
+        self.costo_ayuda += ql.COSTO[nombre]
+        self.pendiente = dict(s=k, a=a, r=r0, resuelta=False)
+        self.ultima_q = nombre
+        if nombre == "directa":
+            self.uso_directa = True
+        valores = self.tabla_q.valores(k) if self.tabla_q is not None else None
+        self.decisiones.append(dict(estado=k, accion=nombre, defecto=defecto, mascara=m,
+                                    q=[round(v, 3) for v in valores] if valores else None, resultado=None))
+
+    def _cerrar_q(self):
+        """Fin de la receta: la última decisión se actualiza sin valor futuro (estado terminal)."""
+        p = self.pendiente
+        if not p:
+            return
+        if self.aprender:
+            self.tabla_q.actualizar(p["s"], p["a"], p["r"], None, None, self.alfa, self.gamma)
+        self.pendiente = None
+
+    def _etiqueta_base(self, fase, nivel, A):
+        if nivel == 0:
+            return ql.ACCIONES.index("animar")
+        if nivel >= 3:
+            return ql.ACCIONES.index("directa")
+        if len(A) >= 2:
+            return ql.ACCIONES.index("doble")
+        for rasgo in ("rasgo1", "rasgo2", "rasgo3"):
+            if A and A[0] in ql.RASGOS[fase][rasgo]:
+                return ql.ACCIONES.index(rasgo)
+        return ql.ACCIONES.index("animar")
+
+    def _pista_segun_politica(self, fase, C, objetivos, attr, relacion, segundos, dificultad, frag_fn, directa):
+        k, m, a, defecto = self._decidir_q(fase, C, objetivos, attr, relacion, segundos, dificultad)
+        if self.politica == "q":
+            nivel, fila, frase = self._construir_pista_q(ql.ACCIONES[a], fase, C, objetivos, attr, dificultad,
+                                                         frag_fn, directa)
+            self.h = nivel
+        else:
+            nivel, fila, frase = self._construir_pista(C, objetivos, attr, self._atributos_fase(fase), dificultad,
+                                                       frag_fn, directa)
+            a, defecto = self._etiqueta_base(fase, nivel, self.ultima_pista["A"]), False
+            self.ultima_pista["tipo"] = ql.ACCIONES[a]
+        self._registrar_q(k, m, a, defecto)
+        return nivel, fila, frase
+
+    def _construir_pista_q(self, nombre, fase, C, objetivos, attr, dificultad, frag_fn, directa):
+        if nombre == "animar":
+            self.atenuados, self.resaltado = set(), None
+            self.ultima_pista = dict(nivel=0, g=None, A=(), S=list(C), ig=0.0, tabla=[], tipo="animar")
+            return 0, ["intentar"], "Intenta otra vez."
+        sel, tabla = None, []
+        if nombre == "doble":
+            tabla = tabla_pistas(C, objetivos, attr, self._atributos_fase(fase), 2, dificultad)
+            sel = self._elegir(tabla)
+        elif nombre != "directa":
+            attrs = self._attrs_rasgo(fase, nombre)
+            if attrs:
+                tabla = tabla_pistas(C, objetivos, attr, attrs, 1, dificultad)
+                sel = self._elegir(tabla)
+        if sel is None:
+            g = min(objetivos, key=dificultad)
+            self.resaltado = g
+            self.atenuados = {x for x in C if x != g}
+            self.ultima_pista = dict(nivel=3, g=g, A=(), S=[g], ig=math.log2(max(1, len(C))), tabla=[], tipo="directa")
+            fila, frase = directa(g)
+            return 3, fila, frase
+        nivel = ql.NIVEL[nombre]
+        self.pistas_usadas.add(sel.clave)
+        self.resaltado = None
+        self.atenuados = {x for x in C if x not in sel.S} if nivel >= 2 else set()
+        self.ultima_pista = dict(nivel=nivel, g=sel.g, A=sel.A, S=sel.S, ig=sel.ig, tabla=tabla[:6], tipo=nombre)
+        return nivel, ["buscar"] + [self._picto_valor(a, v) for a, v in zip(sel.A, sel.vals)], frag_fn(sel)
 
     # --- motor de pistas -------------------------------------------------------------
     def _elegir(self, tabla):
@@ -423,8 +615,8 @@ class Partida:
                 sel = self._elegir(tabla)
         if self.politica == "sin_pista" and nivel < 3:
             self.atenuados, self.resaltado = set(), None
-            self.ultima_pista = dict(nivel=nivel, g=None, A=(), S=list(C), ig=0.0, tabla=[])
-            return nivel, ["intentar"], "Intenta otra vez."
+            self.ultima_pista = dict(nivel=0, g=None, A=(), S=list(C), ig=0.0, tabla=[])
+            return 0, ["intentar"], "Intenta otra vez."
         if nivel < 3 and sel is None:
             nivel = 3
         if nivel == 3:
@@ -440,7 +632,7 @@ class Partida:
         self.ultima_pista = dict(nivel=nivel, g=sel.g, A=sel.A, S=sel.S, ig=sel.ig, tabla=tabla[:6])
         return nivel, ["buscar"] + [self._picto_valor(a, v) for a, v in zip(sel.A, sel.vals)], frag_fn(sel)
 
-    def _pista(self, error=None, auto=False):
+    def _pista(self, error=None, auto=False, relacion="ayuda", segundos=None):
         filas, partes = [], []
         if error:
             filas.append(["no", error])
@@ -448,8 +640,8 @@ class Partida:
         elif auto:
             partes.append("¿Te ayudo?")
         partes.append(self._frase("pista", {}))
-        nivel, fila, frase = self._construir_pista(
-            self.disponibles(), self.faltan(), self.attr, self.atributos_ing(),
+        nivel, fila, frase = self._pista_segun_politica(
+            "INGREDIENTES", self.disponibles(), self.faltan(), self.attr, relacion, segundos,
             lambda g: self.cat.ingredientes[g].dificultad,
             lambda s: "Busca algo " + " y ".join(self._fragmento(a, v) for a, v in zip(s.A, s.vals)) + ".",
             lambda g: (["buscar", g], f"¡Es {self._el(g)}! Tócalo."),
@@ -462,7 +654,7 @@ class Partida:
         return Accion("PISTA", " ".join(partes), filas, "pregunta", nivel=nivel,
                       ingrediente=self.ultima_pista["g"], error=error)
 
-    def _pista_paso(self, error_id=None, auto=False):
+    def _pista_paso(self, error_id=None, auto=False, relacion="ayuda", segundos=None):
         r = self.receta
         filas, partes = [], []
         if error_id:
@@ -470,15 +662,16 @@ class Partida:
             filas.append(["no", f"paso_{error_id}"])
             if d.distractor:
                 para = f"para el {r.nombre}" if DEF[r.articulo] == "el" else f"para {self._el_rec(r)}"
-                partes.append(f"{cap(para)} no hay que {self.desc_paso(d)}.")
+                que = self.desc_paso(d) if d.objetos else self.cat.pasos[d.paso].nombre
+                partes.append(f"{cap(para)} no hay que {que}.")
             else:
                 partes.append(f"Todavía no podemos {self.desc_paso(d)}.")
         elif auto:
             partes.append("¿Te ayudo?")
         partes.append(self._frase("pista", {}))
         orden = [p.paso for p in r.pasos]
-        nivel, fila, frase = self._construir_pista(
-            self.tarjetas_disponibles(), self.pasos_validos(), self.attr_paso, ATRIBUTOS_PASO,
+        nivel, fila, frase = self._pista_segun_politica(
+            "PASOS", self.tarjetas_disponibles(), self.pasos_validos(), self.attr_paso, relacion, segundos,
             lambda pid: orden.index(pid) if pid in orden else 99,
             lambda s: "Primero hay que hacer algo " + " y ".join(self._fragmento(a, v) for a, v in zip(s.A, s.vals)) + ".",
             lambda pid: (["primero", f"paso_{pid}"], f"¡Hay que {self.desc_paso(self.defs[pid])}! Tócalo."),
@@ -497,6 +690,7 @@ class Partida:
         self.fase = "VICTORIA"
         self.terminada = True
         self._limpiar_ayuda()
+        self._cerrar_q()
         faltas = self.errores + self.errores_pasos
         total = faltas + self.ayudas
         self.estrellas = 3 if total == 0 else 2 if total <= 2 else 1
@@ -508,6 +702,9 @@ class Partida:
             segundos=round(time.time() - self.inicio) if self.inicio else 0,
             desempeno=round(perf, 2), theta_antes=round(antes, 2), theta=round(self.perfil.theta, 2),
             motricidad=self.motricidad,
+            politica=self.politica, retorno=round(self.retorno, 3), costo_ayuda=round(self.costo_ayuda, 2),
+            uso_directa=self.uso_directa,
+            decisiones=[{k: d[k] for k in ("estado", "accion", "defecto", "resultado")} for d in self.decisiones],
         )
         self.accion = Accion("VICTORIA", self._frase("victoria", self._vars()),
                              [["bien", f"plato_{r.id}"]], "fiesta", receta=r.id)

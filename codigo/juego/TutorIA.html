@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PictoChef · TutorIA</title>
+  <link rel="stylesheet" href="css/estilo.css" />
+  <script src="js/catalogo.js"></script>
+  <style>
+    .tutoria { max-width: 1100px; margin: 18px auto; padding: 0 16px 40px; }
+    .panel { background: var(--bubble); border: 4px solid var(--ink); border-radius: 20px; padding: 16px 20px; margin: 16px 0; box-shadow: 0 6px 0 rgba(0,0,0,.18); }
+    .panel h2 { margin: 0 0 6px; font-size: 22px; }
+    .panel p { line-height: 1.5; margin: 6px 0; }
+    .nota { color: #5c4a35; font-size: 14px; }
+    .fila { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0; }
+    .fila label { display: inline-flex; gap: 6px; align-items: center; font-weight: 700; }
+    select, input[type=number] { font: inherit; width: auto; max-width: 100%; padding: 6px 8px; border: 3px solid var(--ink); border-radius: 12px; background: #fff; }
+    table.t { border-collapse: collapse; width: 100%; font-size: 15px; background: #fff; }
+    table.t th, table.t td { border-bottom: 1px solid #e6d6bd; padding: 6px 8px; text-align: right; }
+    table.t th:first-child, table.t td:first-child { text-align: left; }
+    table.t th { background: #f6e3c4; }
+    table.t tr.q td { font-weight: 800; background: #fff3bf; }
+    .tabla-wrap { overflow-x: auto; }
+    .curvas { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+    .curva { background: #fff; border: 2px solid #e6d6bd; border-radius: 14px; padding: 8px; }
+    .curva h3 { margin: 2px 4px 4px; font-size: 15px; }
+    .curva svg { width: 100%; height: auto; display: block; }
+    .bar { height: 12px; background: #f1e4cf; border-radius: 6px; overflow: hidden; }
+    .bar i { display: block; height: 100%; background: var(--tomate); }
+    .acc { display: inline-block; padding: 2px 8px; border-radius: 10px; border: 2px solid var(--ink); background: #fff; font-weight: 700; font-size: 13px; }
+    .acc.animar { background: #e9f7ec; } .acc.rasgo1, .acc.rasgo2, .acc.rasgo3 { background: #e5efff; }
+    .acc.doble { background: #fff1c2; } .acc.directa { background: #ffd9d9; }
+    .traza { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+    .paso { display: grid; grid-template-columns: 48px 1fr; gap: 10px; background: #fff; border: 2px solid #e6d6bd; border-radius: 14px; padding: 10px; }
+    .paso.decision { border-color: var(--tomate); }
+    .paso .n { font-weight: 800; font-size: 18px; text-align: center; }
+    .paso img, .paso img.sin-picto { width: 48px; height: 48px; min-width: 48px; object-fit: contain; vertical-align: middle; background: #fff; border-radius: 8px; }
+    .paso .dice { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+    .paso .dice img.sprite-mini { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--ink); }
+    .paso .qtab { display: grid; grid-template-columns: 130px 60px 1fr; gap: 3px 8px; font-size: 13px; margin-top: 6px; max-width: 520px; }
+    .paso .qtab .off { opacity: .35; } .paso .qtab .sel { font-weight: 800; }
+    .resumen { font-weight: 700; margin-top: 8px; }
+    .ok { color: var(--yes); } .mal { color: var(--no); }
+    .indice a { margin-right: 6px; }
+    @media (max-width: 600px) { .paso { grid-template-columns: 1fr; } .paso .n { text-align: left; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="../../datos/sprites/SraTomateIddle.png" alt="" />
+      <span>TutorIA</span>
+    </div>
+    <div class="tools indice">
+      <a class="chip" href="#entrenamiento">Entrenamiento</a>
+      <a class="chip" href="#comparacion">Comparación</a>
+      <a class="chip" href="#politica">Política</a>
+      <a class="chip" href="#simular">Simular partida</a>
+      <a class="chip" href="index.html">Volver al juego</a>
+    </div>
+  </header>
+
+  <main class="tutoria">
+    <section class="panel">
+      <h2>¿Qué es TutorIA?</h2>
+      <p>Es el motor de Q-Learning de la Sra. Tomate. Cada vez que el jugador se equivoca, pide ayuda o se queda en silencio,
+        TutorIA mira el <b>estado</b> (fase, errores seguidos, nivel, tarjetas en pantalla, rapidez, última ayuda, qué rasgo comparte el error
+        y cuál es el rasgo más informativo) y elige el <b>tipo de ayuda</b>: animar, pista de un rasgo, pista doble o pista directa.</p>
+      <p>Recompensa: +1 si el siguiente intento acierta, −0,5 si falla, −0,4 si repite el mismo error, menos el costo de la ayuda
+        (animar 0 · rasgo 0,1 · doble 0,4 · directa 1). Se entrenó con jugadores simulados de cinco perfiles.</p>
+      <p class="nota" id="meta"></p>
+    </section>
+
+    <section class="panel" id="entrenamiento">
+      <h2>Entrenamiento</h2>
+      <p class="nota">Promedio por bloque de episodios. ε baja de 0,3 a 0,02; α = 1/(1+n)<sup>0,6</sup> por par (estado, acción).</p>
+      <div class="curvas" id="curvas"></div>
+    </section>
+
+    <section class="panel" id="comparacion">
+      <h2>Comparación de políticas</h2>
+      <p class="nota">q = TutorIA · ig = regla fija del Hito 1 · aleatoria = tipo de ayuda al azar · sin_pista = solo anima.
+        Mismas recetas, niveles y semillas para todas (python TutorIA.py evaluar).</p>
+      <div class="fila"><label>Perfil <select id="sel-perfil-cmp"></select></label></div>
+      <div class="tabla-wrap"><table class="t" id="tabla-cmp"></table></div>
+      <div class="fila">
+        <button type="button" id="btn-cmp-vivo">Repetir aquí, en el navegador</button>
+        <label>partidas por política <input type="number" id="n-vivo" style="width:90px" value="1000" min="20" max="2000" step="20" /></label>
+        <span class="nota" id="estado-vivo"></span>
+      </div>
+      <div class="tabla-wrap"><table class="t" id="tabla-vivo"></table></div>
+    </section>
+
+    <section class="panel" id="politica">
+      <h2>Política aprendida</h2>
+      <p class="nota">Acción con mayor Q (entre paréntesis, las veces que se visitó el estado) para nivel medio, 4-6 tarjetas y respuesta lenta.</p>
+      <div class="tabla-wrap"><table class="t" id="tabla-pol"></table></div>
+    </section>
+
+    <section class="panel" id="simular">
+      <h2>Simular una partida</h2>
+      <p class="nota">Un jugador simulado juega una receta con la tabla Q real que usa el juego. Las tarjetas rojas son las decisiones de TutorIA.</p>
+      <div class="fila">
+        <label>Receta <select id="sel-receta"></select></label>
+        <label>Perfil <select id="sel-perfil"></select></label>
+        <label>Política <select id="sel-pol"></select></label>
+        <label>Nivel θ <input type="number" id="theta" style="width:80px" value="0.8" min="0.15" max="0.95" step="0.05" /></label>
+        <label>Semilla <input type="number" id="seed" style="width:80px" value="5" min="1" step="1" /></label>
+        <button type="button" id="btn-simular">Jugar</button>
+      </div>
+      <div class="resumen" id="resumen"></div>
+      <div class="traza" id="traza"></div>
+    </section>
+  </main>
+
+  <script src="js/politica_q.js"></script>
+  <script src="js/qlearning.js"></script>
+  <script src="js/agente.js"></script>
+  <script src="js/simulador.js"></script>
+  <script src="js/tutoria_datos.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const D = typeof TUTORIA_DATOS !== "undefined" ? TUTORIA_DATOS : { meta: {}, curva: [], comparacion: [], politica: [] };
+    const POLS = ["q", "ig", "aleatoria", "sin_pista"];
+    const fmt = (v, d = 2) => Number(v).toFixed(d).replace(".", ",");
+    const opciones = (sel, xs, val) => { $(sel).innerHTML = xs.map(([v, t]) => `<option value="${v}">${t}</option>`).join(""); if (val) $(sel).value = val; };
+    const acc = (a) => `<span class="acc ${a}">${a}</span>`;
+
+    // meta
+    const m = D.meta || {};
+    $("meta").textContent = TABLA_Q
+      ? `Tabla Q: ${Object.keys(TABLA_Q.q).length} estados visitados de ${m.estados_posibles || "?"} posibles · ${m.episodios || "?"} episodios · semilla ${m.seed ?? "?"} · γ = ${m.gamma ?? 0.9}`
+      : "No se encontró js/politica_q.js: ejecuta python TutorIA.py entrenar.";
+
+    // curvas
+    function curva(titulo, clave, color, sufijo = "") {
+      const pts = D.curva.map((f) => [f.episodio, f[clave]]);
+      if (!pts.length) return `<div class="curva"><h3>${titulo}</h3><p class="nota">Sin datos (python TutorIA.py evaluar).</p></div>`;
+      const W = 320, H = 170, L = 40, R = 8, T = 10, B = 26;
+      const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs);
+      let y0 = Math.min(...ys), y1 = Math.max(...ys);
+      const pad = (y1 - y0) * 0.1 || 1; y0 -= pad; y1 += pad;
+      const X = (x) => L + ((x - x0) / (x1 - x0 || 1)) * (W - L - R);
+      const Y = (y) => T + (1 - (y - y0) / (y1 - y0)) * (H - T - B);
+      const ticks = [y0 + pad, (y0 + y1) / 2, y1 - pad];
+      const d = pts.map((p, i) => `${i ? "L" : "M"}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join("");
+      return `<div class="curva"><h3>${titulo}</h3><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${titulo}">
+        ${ticks.map((t) => `<line x1="${L}" x2="${W - R}" y1="${Y(t)}" y2="${Y(t)}" stroke="#eadcc6"/><text x="${L - 4}" y="${Y(t) + 4}" font-size="10" text-anchor="end" fill="#5c4a35">${fmt(t, 1)}${sufijo}</text>`).join("")}
+        <path d="${d}" fill="none" stroke="${color}" stroke-width="2.2"/>
+        <text x="${L}" y="${H - 6}" font-size="10" fill="#5c4a35">${x0 / 1000}k</text>
+        <text x="${W - R}" y="${H - 6}" font-size="10" text-anchor="end" fill="#5c4a35">${x1 / 1000}k episodios</text>
+        <text x="${X(xs[xs.length - 1]) - 2}" y="${Y(ys[ys.length - 1]) - 6}" font-size="11" font-weight="700" text-anchor="end" fill="${color}">${fmt(ys[ys.length - 1], 2)}${sufijo}</text>
+      </svg></div>`;
+    }
+    $("curvas").innerHTML = curva("Retorno medio por receta", "retorno", "#c44536") +
+      curva("Errores por receta", "errores", "#2b6cb0") + curva("Recetas con pista directa", "pct_directa", "#2e9e4a", "%");
+
+    // comparación
+    const CAB = `<tr><th>política</th><th>retorno</th><th>errores</th><th>ayudas</th><th>costo ayuda</th><th>% con directa</th><th>% acierto tras pista</th></tr>`;
+    const filaCmp = (f) => `<tr class="${f.politica === "q" ? "q" : ""}"><td>${f.politica === "q" ? "q (TutorIA)" : f.politica}</td><td>${fmt(f.retorno)}</td><td>${fmt(f.errores)}</td><td>${fmt(f.ayudas)}</td><td>${fmt(f.costo)}</td><td>${fmt(f.directa, 1)}</td><td>${fmt(f.exito_pista, 1)}</td></tr>`;
+    const perfilesCmp = [...new Set(D.comparacion.map((f) => f.perfil))];
+    opciones("sel-perfil-cmp", perfilesCmp.map((p) => [p, p === "TODOS" ? "todos los perfiles" : p]), "TODOS");
+    function pintarCmp() {
+      const filas = D.comparacion.filter((f) => f.perfil === $("sel-perfil-cmp").value);
+      $("tabla-cmp").innerHTML = filas.length ? CAB + filas.map(filaCmp).join("") : "<tr><td>Sin datos: ejecuta python TutorIA.py evaluar.</td></tr>";
+    }
+    $("sel-perfil-cmp").onchange = pintarCmp;
+    pintarCmp();
+
+    $("btn-cmp-vivo").onclick = () => {
+      const perfilSel = $("sel-perfil-cmp").value;
+      const perfiles = perfilSel === "TODOS" || !PERFILES[perfilSel] ? Object.keys(PERFILES) : [perfilSel];
+      const n = Math.max(20, Math.min(2000, +$("n-vivo").value || 1000));
+      $("estado-vivo").textContent = "simulando…";
+      setTimeout(() => {
+        const t0 = performance.now();
+        const filas = POLS.map((pol) => {
+          const rnd = rngSemilla(777);
+          const partidas = [];
+          for (let k = 0; k < n; k++) {
+            const theta = 0.15 + 0.8 * rnd(), seed = 1 + Math.floor(rnd() * 1e9);
+            partidas.push(jugarPerfil(CATALOGO.recetas[k % CATALOGO.recetas.length], perfiles[k % perfiles.length], pol, seed, theta).partida);
+          }
+          return { politica: pol, ...metricasPartidas(partidas) };
+        });
+        $("tabla-vivo").innerHTML = CAB + filas.map(filaCmp).join("");
+        $("estado-vivo").textContent = `${n} partidas por política · ${perfilSel === "TODOS" ? "todos los perfiles" : perfilSel} · ${((performance.now() - t0) / 1000).toFixed(1)} s (el azar del navegador es distinto al de Python: los números se parecen, no son idénticos)`;
+      }, 30);
+    };
+
+    // política aprendida
+    $("tabla-pol").innerHTML = D.politica.length
+      ? `<tr><th>fase · relación del error</th><th>1 error</th><th>2 errores</th><th>3+ errores</th></tr>` +
+        D.politica.map((f) => `<tr><td>${f.fase === "PASOS" ? "pasos" : "ingredientes"} · ${f.relacion}</td>${f.celdas.map((c) => `<td>${c ? `${acc(c.accion)} <span class="nota">(${c.visitas})</span>` : "·"}</td>`).join("")}</tr>`).join("") +
+        `<tr><td colspan="4" class="nota">Para «pidió ayuda» las columnas son 0 · 1 · 2 errores previos.</td></tr>`
+      : "<tr><td>Sin datos: ejecuta python TutorIA.py evaluar.</td></tr>";
+
+    // simulación paso a paso
+    opciones("sel-receta", CATALOGO.recetas.map((r) => [r.id, r.nombre]), "pizza");
+    opciones("sel-perfil", Object.keys(PERFILES).map((p) => [p, p]), "visual");
+    opciones("sel-pol", POLS.map((p) => [p, p === "q" ? "q (TutorIA)" : p]), "q");
+    const nombre = (x) => (CATALOGO.ingredientes[x] ? nombreIng(x) : CATALOGO.pasos[x] ? CATALOGO.pasos[x].nombre : x);
+    const ETQ = { INGREDIENTES: { rasgo1: "color", rasgo2: "grupo", rasgo3: "origen/sabor" }, PASOS: { rasgo1: "utensilio", rasgo2: "objeto", rasgo3: "—" } };
+
+    function simular() {
+      const r = recetaPorId($("sel-receta").value);
+      const { partida: p, traza } = jugarPerfil(r, $("sel-perfil").value, $("sel-pol").value, Math.max(1, +$("seed").value || 1), +$("theta").value || 0.5);
+      const dec = traza.filter((f) => f.decision).length;
+      $("resumen").innerHTML = `${p.terminada ? `<span class="ok">Receta terminada</span>` : `<span class="mal">Sin terminar</span>`} · ${traza.length} acciones del jugador ·
+        errores ${p.errores} + ${p.erroresPasos} · ${dec} decisiones de TutorIA · retorno ${fmt(p.retorno)} · costo de ayuda ${fmt(p.costoAyuda)}${p.usoDirecta ? " · usó pista directa" : ""}`;
+      $("traza").innerHTML = traza.map((f, i) => {
+        let jug;
+        if (f.pick === "AYUDA") jug = `pide <b>AYUDA</b> tras ${fmt(f.seg, 1)} s`;
+        else if (f.fase === "ACCION") jug = `hace el gesto del paso`;
+        else jug = `toca ${imgPicto(f.pick, nombre(f.pick))} <b>${nombre(f.pick)}</b> (${fmt(f.seg, 1)} s)`;
+        let html = `<div class="paso ${f.decision ? "decision" : ""}"><div class="n">${i + 1}</div><div>
+          <div><span class="nota">${f.fase.toLowerCase()}</span> · el jugador ${jug}</div>`;
+        if (f.decision) {
+          const d = f.decision, e = QL.describir(d.estado), et = ETQ[e.fase];
+          const rel = { ayuda: "pidió ayuda / silencio", nada: "no comparte nada", prematuro: "paso fuera de orden" }[e.relacion] || `comparte ${et[e.relacion]}`;
+          const vmax = d.q ? Math.max(...d.q.map(Math.abs), 0.01) : 1;
+          html += `<div class="nota">estado ${d.estado}: errores ${e.errores} · nivel ${e.nivel} · tarjetas ${e.tarjetas} · ${e.velocidad} · última ${e.ultima} · ${rel} · mejor rasgo ${et[e.mejor] || e.mejor}${d.defecto ? " · <b>estado no visto: acción por defecto</b>" : ""}</div>
+            <div class="qtab">${QL.ACCIONES.map((a, k) => {
+              const v = d.q ? d.q[k] : 0, cls = !d.mascara[k] ? "off" : a === d.accion ? "sel" : "";
+              return `<span class="${cls}">${a === d.accion ? "➜ " : ""}${a}</span><span class="${cls}">${fmt(v, 3)}</span><div class="bar ${cls}"><i style="width:${Math.max(0, (v / vmax) * 100)}%"></i></div>`;
+            }).join("")}</div>
+            <div>TutorIA elige ${acc(d.accion)} ${d.resultado ? (d.resultado === "acierto" ? `<span class="ok">→ el siguiente intento acierta</span>` : `<span class="mal">→ vuelve a fallar</span>`) : ""}</div>`;
+        }
+        if (f.accion.tipo === "PISTA" || f.accion.tipo === "VICTORIA" || f.decision) {
+          html += `<div class="dice"><img class="sprite-mini" src="../../datos/sprites/SraTomateIddle.png" alt="" />${f.accion.filas.flat().slice(0, 6).map((id) => imgPicto(id, CATALOGO.conceptos[id] || nombre(id))).join("")}
+            <span>«${f.accion.texto}»</span></div>`;
+        }
+        return html + "</div></div>";
+      }).join("");
+    }
+    $("btn-simular").onclick = simular;
+    simular();
+  </script>
+</body>
+</html>
