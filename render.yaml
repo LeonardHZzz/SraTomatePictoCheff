@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: pictochef
+    runtime: static
+    buildCommand: bash render-build.sh
+    staticPublishPath: ./public
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=300

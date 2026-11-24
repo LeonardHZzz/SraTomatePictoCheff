@@ -298,6 +298,7 @@ function render() {
   Chef.set(a.sprite);
   $("btn-ayuda").disabled = !["INGREDIENTES", "PASOS"].includes(partida.fase);
   programarInactividad();
+  Guia.revisar();
 }
 
 // =====================================================================
@@ -326,6 +327,7 @@ function abrirMinijuego() {
     },
   });
   minijuego.iniciar();
+  Guia.gesto(id);
   setTimeout(() => cv.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
   clearTimeout(timerGesto);
   timerGesto = setTimeout(() => {
@@ -342,6 +344,7 @@ function cerrarMinijuego() {
   $("lienzo").classList.add("oculto");
   $("cocina-espera").classList.remove("oculto");
   $("btn-ayuda-motora").classList.add("oculto");
+  Guia.finGesto();
 }
 
 // =====================================================================
@@ -582,6 +585,8 @@ function crearJugador() {
   const j = Jugadores.crear({ nombre, avatar: nuevoAvatar, motor: nuevoMotor, sinColor: $("nuevo-sincolor").checked });
   $("nuevo").classList.remove("show");
   entrarJugador(j.id);
+  // jugador nuevo: primero se explica cómo se juega
+  Tutorial.abrir(() => Voz.decir(`¡Muy bien, ${j.nombre}! ${partida.accion.texto}`));
 }
 
 function entrarJugador(id) {
@@ -770,10 +775,39 @@ function initEventos() {
   $("chip-jugador").addEventListener("click", cambiarJugador);
   $("btn-logros").addEventListener("click", abrirLogros);
   $("btn-win-logros").addEventListener("click", abrirLogros);
-  $("btn-registro").addEventListener("click", abrirRegistro);
+  $("btn-registro").addEventListener("click", () => {
+    $("adultos").classList.remove("show");
+    abrirRegistro();
+  });
+  const abrirAdultos = () => $("adultos").classList.add("show");
+  $("btn-adultos").addEventListener("click", abrirAdultos);
+  $("inicio-adultos").addEventListener("click", abrirAdultos);
+  $("btn-inicio").addEventListener("click", () => Inicio.abrir());
+  $("login-inicio").addEventListener("click", () => Inicio.abrir());
+  $("inicio-jugar").addEventListener("click", () => Inicio.jugar());
+  $("inicio-como").addEventListener("click", () => Tutorial.abrir(() => Inicio.jugar()));
+  $("btn-como").addEventListener("click", () => {
+    if (!jugador) return Tutorial.abrir();
+    Tutorial.abrir(() => Voz.decir(partida.accion.texto));
+  });
+  $("tut-atras").addEventListener("click", () => Tutorial.mover(-1));
+  $("tut-siguiente").addEventListener("click", () => Tutorial.mover(1));
+  $("tut-oir").addEventListener("click", () => Voz.decir(Tutorial.pasos[Tutorial.i].voz));
+  $("tut-jugar").addEventListener("click", () => Tutorial.cerrar());
+  $("tut-saltar").addEventListener("click", () => Tutorial.cerrar());
+  $("guia").checked = Guia.activa;
+  $("guia").addEventListener("change", (e) => Guia.setActiva(e.target.checked));
+  // al tocar lo que la guía señala, la mano desaparece
+  document.addEventListener("pointerdown", (e) => {
+    if (e.target.closest("[data-ing],[data-paso],[data-tipo],#btn-ayuda,#btn-oir,#lienzo")) Guia.ocultar();
+  });
   $("nuevo-crear").addEventListener("click", crearJugador);
   $("nuevo-nombre").addEventListener("keydown", (e) => e.key === "Enter" && crearJugador());
   $("nuevo-cancelar").addEventListener("click", () => {
+    if (!Jugadores.lista().length) {
+      $("nuevo").classList.remove("show");
+      return Inicio.abrir();
+    }
     $("nuevo").classList.remove("show");
     renderLogin();
     $("login").classList.add("show");

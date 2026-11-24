@@ -25,31 +25,43 @@ Juego de cocina con pictogramas (CAA) para la **Asociación Educativa Kallpa**.
 - **Pictogramas:** [ARASAAC](https://arasaac.org) (Sergio Palao · CC BY-NC-SA).
 
 
+## Jugar
+
+Abrir `index.html` (redirige al juego, `codigo/juego/index.html`). Al cargar aparece la pantalla de inicio
+(**JUGAR** y **¿CÓMO SE JUEGA?**). Las opciones para adultos (voz, sonidos, guía, panel del terapeuta,
+registro y TutorIA) están en el botón ⚙.
+
 ```bash
-python -m http.server 8080
-# http://localhost:8080/codigo/juego/index.html
+python -m http.server 8080     # http://localhost:8080
 ```
+
+## Publicar en Render (versión de prueba)
+
+El repositorio incluye `render.yaml` y `render-build.sh` (copia solo el juego, los pictogramas y los sprites a `public/`).
+
+1. Subir los cambios a GitHub (`git add -A && git commit -m "..." && git push`).
+2. En Render: **New → Blueprint**, elegir el repositorio y aceptar el servicio `pictochef` (sitio estático, gratis).
+   También sirve **New → Static Site** con *Build Command* `bash render-build.sh` y *Publish Directory* `public`.
+3. Abrir la URL `https://pictochef….onrender.com`: carga directo la pantalla de inicio.
+
+## Herramientas (Python)
+
 ```bash
 cd codigo
 python descargar_pictogramas.py
-```
-
-```bash
 python generar_catalogo_js.py
-
-```bash
-cd codigo
-pip install matplotlib              
-python TutorIA.py entrenar             
-python TutorIA.py evaluar     
-python TutorIA.py traza pizza visual  
-python pruebas/paridad_q.py && node pruebas/paridad_q.js 
+pip install matplotlib
+python TutorIA.py entrenar
+python TutorIA.py evaluar
+python TutorIA.py traza pizza visual
+python pruebas/paridad_q.py && node pruebas/paridad_q.js
 ```
 
 ## Estructura
 
 ```
-├── index.html                  # portada
+├── index.html                  # redirige al juego
+├── render.yaml · render-build.sh  # despliegue en Render (sitio estático)
 ├── docs/Q_LEARNING_SRA_TOMATE.md
 ├── codigo/
 │   ├── catalogo.py             # carga datos
@@ -61,7 +73,7 @@ python pruebas/paridad_q.py && node pruebas/paridad_q.js
 │   ├── generar_catalogo_js.py  # datos/ -> juego/js/catalogo.js
 │   ├── descargar_pictogramas.py
 │   └── juego/                  # interfaz HTML/CSS/JS: index.html (juego) · TutorIA.html
-│       └── js/ catalogo.js · politica_q.js · qlearning.js · agente.js · simulador.js · tutoria_datos.js · minijuegos.js · jugadores.js · voz.js · sonido.js · ui.js
+│       └── js/ guia.js (inicio, tutorial, guía) · catalogo.js · politica_q.js · qlearning.js · agente.js · simulador.js · tutoria_datos.js · minijuegos.js · jugadores.js · voz.js · sonido.js · ui.js
 └── datos/
     ├── ingredientes.csv · conceptos.csv · pasos.csv · recetas.json
     ├── politica_q.json         # tabla Q entrenada

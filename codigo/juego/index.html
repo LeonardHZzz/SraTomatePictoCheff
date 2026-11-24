@@ -4,42 +4,32 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PictoChef · Cocina de la Sra. Tomate</title>
+  <meta name="description" content="Juego de cocina con pictogramas y voz para niños." />
+  <meta name="theme-color" content="#c44536" />
+  <link rel="icon" href="../../datos/sprites/SraTomateIddle.png" />
   <link rel="stylesheet" href="css/estilo.css" />
   <script src="js/catalogo.js"></script>
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">
+    <button type="button" class="brand" id="btn-inicio" data-narrar="Inicio">
       <img src="../../datos/sprites/SraTomateIddle.png" alt="" />
       <span>PictoChef</span>
-    </div>
+    </button>
     <button type="button" class="jugador-chip oculto" id="chip-jugador" data-narrar="Cambiar de jugador">
       <img id="chip-avatar" alt="" /><span id="chip-nombre"></span>
     </button>
     <div class="tools">
-      <button type="button" id="btn-logros" class="chip" data-narrar="Mis logros">
-        <img src="../../datos/pictogramas/trofeo.png" data-picto="trofeo" alt="" onerror="pictoFallback(this)" /> Mis logros
+      <button type="button" id="btn-como" class="chip chip-nino" data-narrar="¿Cómo se juega?">
+        <img src="../../datos/pictogramas/pregunta.png" data-picto="pregunta" alt="" onerror="pictoFallback(this)" /> ¿CÓMO SE JUEGA?
       </button>
-      <label class="chip"><input id="voz" type="checkbox" checked /> Voz</label>
-      <label class="chip"><input id="sonidos" type="checkbox" checked /> Sonidos</label>
-      <label class="chip"><input id="pasar" type="checkbox" checked /> Leer al tocar</label>
-      <details class="ajustes">
-        <summary class="chip">Ajustes de voz</summary>
-        <div class="ajustes-panel">
-          <label>Voz en español
-            <select id="sel-voz"></select>
-          </label>
-          <label>Velocidad <span id="vel-txt">0.9</span>
-            <input id="vel" type="range" min="0.6" max="1.2" step="0.05" value="0.9" />
-          </label>
-          <button type="button" id="probar">Probar voz</button>
-          <p class="nota" id="nota-voz">Consejo: en Microsoft Edge las voces «Natural» (p. ej. Camila, Perú) son las más claras.</p>
-        </div>
-      </details>
-      <label class="chip"><input id="terapeuta" type="checkbox" /> Terapeuta</label>
-      <button type="button" id="btn-registro" class="chip">Registro</button>
-      <a class="chip" href="TutorIA.html">TutorIA</a>
-      <button type="button" id="btn-nueva">Otra receta</button>
+      <button type="button" id="btn-logros" class="chip chip-nino" data-narrar="Mis logros">
+        <img src="../../datos/pictogramas/trofeo.png" data-picto="trofeo" alt="" onerror="pictoFallback(this)" /> LOGROS
+      </button>
+      <button type="button" id="btn-nueva" class="chip chip-nino" data-narrar="Otro plato">
+        <img src="../../datos/pictogramas/plato.png" data-picto="plato" alt="" onerror="pictoFallback(this)" /> OTRO PLATO
+      </button>
+      <button type="button" id="btn-adultos" class="chip chip-adulto" title="Opciones para adultos" aria-label="Opciones para adultos">⚙</button>
     </div>
   </header>
 
@@ -87,8 +77,9 @@
         <div id="zona-cocina" class="zona-cocina oculto">
           <div id="cocina-espera" class="cocina-espera">
             <img src="../../datos/pictogramas/pregunta.png" data-picto="pregunta" alt="" onerror="pictoFallback(this)" />
-            <span>Toca o arrastra aquí el paso que sigue</span>
+            <span>TOCA O ARRASTRA AQUÍ EL PASO QUE SIGUE</span>
           </div>
+          <p id="cocina-instr" class="cocina-instr oculto" aria-live="polite"></p>
           <canvas id="lienzo" class="lienzo oculto" aria-label="Cocina: haz el gesto con el dedo o el ratón"></canvas>
           <button type="button" id="btn-ayuda-motora" class="btn-ayuda-motora oculto" data-narrar="Te ayudo con el gesto">
             <img src="../../datos/pictogramas/ayuda.png" data-picto="ayuda" alt="" onerror="pictoFallback(this)" /> TE AYUDO
@@ -104,12 +95,91 @@
       <div id="grid" class="grid"></div>
     </section>
   </main>
-  <div id="login" class="overlay show" role="dialog" aria-modal="true" aria-labelledby="login-tit">
+  <div id="inicio" class="overlay overlay-inicio show" role="dialog" aria-modal="true" aria-labelledby="inicio-tit">
+    <div class="inicio">
+      <button type="button" id="inicio-adultos" class="chip chip-adulto inicio-adultos" title="Opciones para adultos" aria-label="Opciones para adultos">⚙</button>
+      <h1 id="inicio-tit" class="inicio-titulo">Picto<span>Chef</span></h1>
+      <div class="inicio-chef">
+        <img src="../../datos/sprites/SraTomateIddle.png" alt="Sra. Tomate" />
+        <div class="inicio-globo">¡Hola! Vamos a cocinar.</div>
+      </div>
+      <div class="inicio-pictos" aria-hidden="true">
+        <img src="../../datos/pictogramas/tomate.png" data-picto="tomate" alt="" onerror="pictoFallback(this)" />
+        <img src="../../datos/pictogramas/queso.png" data-picto="queso" alt="" onerror="pictoFallback(this)" />
+        <img src="../../datos/pictogramas/plato_pizza.png" data-picto="plato_pizza" alt="" onerror="pictoFallback(this)" />
+        <img src="../../datos/pictogramas/fresa.png" data-picto="fresa" alt="" onerror="pictoFallback(this)" />
+        <img src="../../datos/pictogramas/pan.png" data-picto="pan" alt="" onerror="pictoFallback(this)" />
+      </div>
+      <button type="button" id="inicio-jugar" class="btn-jugar" data-narrar="Jugar">
+        <span class="play" aria-hidden="true">▶</span> JUGAR
+      </button>
+      <button type="button" id="inicio-como" class="btn-como" data-narrar="¿Cómo se juega?">
+        <img src="../../datos/pictogramas/pregunta.png" data-picto="pregunta" alt="" onerror="pictoFallback(this)" /> ¿CÓMO SE JUEGA?
+      </button>
+      <p class="inicio-credito">Pictogramas: ARASAAC (Sergio Palao) · CC BY-NC-SA</p>
+    </div>
+  </div>
+
+  <div id="tutorial" class="overlay overlay-tut" role="dialog" aria-modal="true" aria-labelledby="tut-titulo">
+    <div class="card-win card-tut">
+      <div class="tut-cabeza"><span id="tut-num" class="tut-badge">1</span><h2 id="tut-titulo"></h2>
+        <button type="button" id="tut-oir" class="tut-oir" data-narrar="Escuchar otra vez">
+          <img src="../../datos/pictogramas/oir.png" data-picto="oir" alt="Escuchar" onerror="pictoFallback(this)" />
+        </button>
+      </div>
+      <div id="tut-contenido" class="tut-contenido"></div>
+      <div id="tut-puntos" class="tut-puntos" aria-hidden="true"></div>
+      <div class="tut-nav">
+        <button type="button" id="tut-atras" class="tut-flechabtn" aria-label="Atrás" data-narrar="Atrás">◀</button>
+        <button type="button" id="tut-siguiente" class="tut-flechabtn tut-sig" aria-label="Siguiente" data-narrar="Siguiente">▶</button>
+        <button type="button" id="tut-jugar" class="btn-grande btn-jugar-mini oculto" data-narrar="A jugar">
+          <img src="../../datos/pictogramas/cocinar.png" data-picto="cocinar" alt="" onerror="pictoFallback(this)" /> ¡A JUGAR!
+        </button>
+      </div>
+      <button type="button" id="tut-saltar" class="tut-saltar">Saltar</button>
+    </div>
+  </div>
+
+  <div id="adultos" class="overlay" role="dialog" aria-modal="true" aria-labelledby="adultos-tit">
+    <div class="card-win card-adultos">
+      <h2 id="adultos-tit">Opciones para adultos</h2>
+      <p class="nota">Para el terapeuta, docente o familia. Los niños no necesitan entrar aquí.</p>
+      <div class="adultos-grid">
+        <label class="chip chip-claro"><input id="voz" type="checkbox" checked /> Voz de la Sra. Tomate</label>
+        <label class="chip chip-claro"><input id="sonidos" type="checkbox" checked /> Sonidos</label>
+        <label class="chip chip-claro"><input id="pasar" type="checkbox" checked /> Leer al tocar o pasar</label>
+        <label class="chip chip-claro"><input id="guia" type="checkbox" checked /> Guía con la mano (primeras partidas)</label>
+        <label class="chip chip-claro"><input id="terapeuta" type="checkbox" /> Panel del terapeuta</label>
+      </div>
+      <div class="ajustes-panel ajustes-fijo">
+        <label>Voz en español
+          <select id="sel-voz"></select>
+        </label>
+        <label>Velocidad <span id="vel-txt">0.9</span>
+          <input id="vel" type="range" min="0.6" max="1.2" step="0.05" value="0.9" />
+        </label>
+        <button type="button" id="probar">Probar voz</button>
+        <p class="nota" id="nota-voz">Consejo: en Microsoft Edge las voces «Natural» (p. ej. Camila, Perú) son las más claras.</p>
+      </div>
+      <div class="win-botones">
+        <button type="button" id="btn-registro">Registro del terapeuta</button>
+        <a class="chip" href="TutorIA.html">TutorIA (Q-Learning)</a>
+        <button type="button" data-cerrar="adultos" class="btn-cerrar-adultos">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="guia-banda" class="guia-banda oculto" aria-live="polite"><span class="mano-mini">👆</span><b id="guia-banda-txt"></b></div>
+  <div id="guia-mano" class="guia-mano oculto" aria-hidden="true">👆</div>
+
+  <div id="login" class="overlay" role="dialog" aria-modal="true" aria-labelledby="login-tit">
     <div class="card-win card-ancha">
       <img class="sprite-grande" src="../../datos/sprites/SraTomateQuestion.png" alt="Sra. Tomate" />
-      <h2 id="login-tit">¿Quién va a cocinar hoy?</h2>
+      <h2 id="login-tit">¿QUIÉN VA A COCINAR HOY?</h2>
+      <p class="sub-tit">Toca tu dibujo</p>
       <div id="login-lista" class="login-lista"></div>
       <p class="nota" id="aviso-memoria"></p>
+      <button type="button" id="login-inicio" class="btn-volver" data-narrar="Volver al inicio">◀ INICIO</button>
     </div>
   </div>
 
@@ -176,10 +246,7 @@
   </div>
   <div id="confeti" class="confeti" aria-hidden="true"></div>
 
-  <p class="credit">
-    Juego accesible CAA para la Asociación Educativa Kallpa · Modalidad 1 (la Sra. Tomate pregunta y guía con pistas) ·
-    Pictogramas de <a href="https://arasaac.org">ARASAAC</a> (autor: Sergio Palao, CC BY-NC-SA, Gobierno de Aragón).
-  </p>
+  <p class="credit">Pictogramas de <a href="https://arasaac.org">ARASAAC</a> · Sergio Palao · CC BY-NC-SA · Gobierno de Aragón</p>
 
   <script src="js/politica_q.js"></script>
   <script src="js/qlearning.js"></script>
@@ -189,5 +256,6 @@
   <script src="js/jugadores.js"></script>
   <script src="js/minijuegos.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/guia.js"></script>
 </body>
 </html>
